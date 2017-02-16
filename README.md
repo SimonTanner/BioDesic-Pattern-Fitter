@@ -1,3 +1,3 @@
 # BioDesic-Pattern-Fitter
-A program to automate altering 3D model data of garments to enable quicker more accurate pattern design
+A program to automate altering 3D model data of garments to enable quicker more accurate pattern design.
 BioDesic clothing is a concept influenced and inspired by architecture and geodesic structures. Wanting to create wearable, architectural clothing using tessellated forms it became apparent that fitting these garments to the curves of the human body required much more precision than traditional clothing construction. This program was born out of a desire to embrace technology and push the boundaries of traditional clothing and create an aesthetic created by the solution to this problem.
