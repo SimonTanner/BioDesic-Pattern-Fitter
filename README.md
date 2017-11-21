@@ -27,6 +27,8 @@ For Windows you can open the code using the IDLE or double click the .py file an
 
 Once the program's running you can click two points either side of the part of the model you want to cut through and it will display the measurement. You can then type in the new measurement and hit enter repeatedly until it acheives thee desired result.
 
+[Image of GUI](https://github.com/SimonTanner/BioDesic-Pattern-Fitter/blob/master/images/BioDesic-Pattern-Fitter.jpg)
+
 ### Other commands are as follows:
 
 E - Shows or hides polygon edges
