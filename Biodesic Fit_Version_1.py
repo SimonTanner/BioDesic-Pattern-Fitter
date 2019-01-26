@@ -15,7 +15,7 @@ data_list = []
 
 pygame.init()
 
-FPS = 30
+FPS = 20
 FPSClock = pygame.time.Clock()
 
 Screen_width = 1200
@@ -2693,11 +2693,9 @@ def create_screen(centre_point):
     scale_x = width / delta_x(data_list_2)[0]
 
     if scale_z < scale_x:
-
         scale = scale_z
 
     else:
-
         scale = scale_x
 
     min_z = delta_z(data_list_2)[1] + delta_z(data_list_2)[0] / 2
@@ -2713,15 +2711,12 @@ def create_screen(centre_point):
         check_measurement = False
 
         if show_unedited == True:
-
             draw_edges(data_list, DISPLAYSURF, angle, centre_point, norm_vis, scale, min_z)
 
         if quit_scr == True:
-
             quit_screen()
 
         measurement_2 = convert_list(measurement_list)
-
         measurement_text2(measurement_2, [0, 20])
 
         if len(coords) > 0:
@@ -2731,262 +2726,176 @@ def create_screen(centre_point):
 
         for event in pygame.event.get():
             if event.type == QUIT:
-
                 quit_scr = True
-
 
             elif event.type == KEYDOWN:
 
                 if event.key == K_ESCAPE:
-
                     quit_scr = True
 
                 elif event.key == K_y and quit_scr == True:
-
                     quit_game(data_list_2, True)
 
                 elif event.key == K_n and quit_scr == True:
-
                     quit_game(data_list_2, False)
 
                 elif event.key == K_c and quit_scr == True:
-
                     quit_scr = False
 
                 elif event.key == K_LEFT:
-
                     angle += 1
 
                 elif event.key == K_RIGHT:
-
                     angle -= 1
 
                 elif event.key == K_f:
-
                     angle = 0
 
                 elif event.key == K_b:
-
                     angle = 180
 
                 elif event.key == K_r:
-
                     angle = 90
 
                 elif event.key == K_l:
-
                     angle = -90
 
                 elif event.key == K_e:
-
                     if CONTROL == False:
-
                         if show_edges == False:
-
                             show_edges = True
 
                         elif show_edges == True:
-
                             show_edges = False
 
                     else:
-
                         if show_unedited == False:
-
                             show_unedited = True
 
                         elif show_unedited == True:
-
                             show_unedited = False
 
 
                 elif event.key == K_v:
-
                     if faces_vis == False:
-
                         faces_vis = True
 
                     elif faces_vis == True:
-
                         faces_vis = False
 
                 elif event.key == K_n:
-
                     if norm_vis == False:
-
                         norm_vis = True
 
                     elif norm_vis == True:
-
                         norm_vis = False
 
                 elif event.key == K_DELETE:
-
                     data_list_2 = copy.deepcopy(data_list)
 
-                    #int_faces_1 = []
-
                 elif event.key == K_c:
-
                     points = []
-
                     coords = []
-
                     cut_plane = []
-
                     cut_plane_2 = []
 
-                    #int_faces_1 = []
-
                 elif event.key == K_a:
-
                     if len(cut_plane) > 0 and align_to_plane == False:
-
                         align_to_plane = True
 
                     else:
-
                         align_to_plane = False
-
                         clicked = True
 
                 elif event.key == K_LSHIFT or event.key == K_RSHIFT:
-
                     SHIFT = True
 
                 elif event.key == K_LCTRL or event.key == K_RCTRL:
-
                     CONTROL = True
 
                 elif event.key >= K_0 and event.key <= K_9:
-
                     measurement_list.append(event.key-48)
 
                 elif event.key == K_RETURN  and len(measurement_list) > 1 and len(points) > 0 and measurement > 0.0:
-
                     coord1 = copy.deepcopy(coords[-2])
                     coord2 = copy.deepcopy(coords[-1])
 
                     if align_to_plane == True & len(cut_plane_2) > 0:
-
                         plane = cut_plane_2
 
                     else:
-
                         plane = cut_plane
 
                     data_list_2 = move_vertices(int_faces_1, plane, measurement_2, data_list_2)
-
                     check_measurement = True
 
-                    #measurement_list = [0]
-
-
                 elif event.key == K_BACKSPACE and  len(measurement_list) > 1:
-
                     del(measurement_list[-1])
 
-
-
-
-
             elif event.type == KEYUP:
-
                 if event.key == K_LSHIFT or event.key == K_RSHIFT:
-
                     SHIFT = False
 
                 elif event.key == K_LCTRL or event.key == K_RCTRL:
-
                     CONTROL = False
 
-
             elif event.type == MOUSEBUTTONDOWN:
-
                 if pygame.mouse.get_pressed()[0]:
-
                     point = list(pygame.mouse.get_pos())
-
                     clicked = True
 
                     if SHIFT == True and len(points) > 0:
-
                         last_point = points[-1]
-
                         if abs(last_point[0][0] - point[0]) > abs(last_point[0][1] - point[1]) :
-
                             point[1] = last_point[0][1]
 
                         else:
-
                             point[0] = last_point[0][0]
 
                         if len(points[-1]) == 1 :
-
                             points[-1].append(point)
 
                         else:
-
                             points.append([point])
 
                     elif len(points) == 0:
-
                         points.append([point])
 
                     elif len(points) > 0:
-
                         if len(points[-1]) == 1:
-
                             points[-1].append(point)
 
                         else:
-
                             points.append([point])
 
 
         for i in range(0, len(points)):
-
             for n in range(0, len(points[i])):
-
                 pygame.draw.circle(DISPLAYSURF, (255, 50, 50), points[i][n], 5, 2)
 
 
         if len(points) > 0:
-
             if len(points[-1]) % 2 == 0:
-
                 for i in range(0, len(points)):
-
                     pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i][0], points[i][1])
 
                     if clicked == True:
-
                         coords.append(data_point_screen_convertor(points[-1][0], scale, min_z))
-
                         coords.append(data_point_screen_convertor(points[-1][1], scale, min_z))
 
-                    #if check_measurement == True:
-
                 if len(cut_plane_2) == 0 or clicked == True or align_to_plane == False:
-
                     if plane_aligned == True:
-
                         del(coords[-2:])
 
                     try:
-
                         int_faces_1, cut_plane = intersect(coords[-2], coords[-1], data_list_2, [])
 
                     except IndexError:
-
                         break
 
                     plane_aligned == False
 
                 if align_to_plane == True and len(cut_plane_2) == 0:
-
-                    #print 'yah 1'
-
                     cut_plane_2, coord1, coord2 = align_plane(int_faces_1, cut_plane, data_list_2, coords[-2], coords[-1])
 
                     #coords.append(coord1)
@@ -2994,47 +2903,30 @@ def create_screen(centre_point):
 
                     p1 = screen_point_convertor(coord1, scale, min_z)
                     p2 = screen_point_convertor(coord2, scale, min_z)
-
                     points.append([p1, p2])
-
                     int_faces_1 = intersect(coord1, coord2, data_list_2, cut_plane_2)[0]
-
                     plane_aligned = True
 
                 measurement = calc_measurement(int_faces_1)
-
                 measurement_text(measurement)
 
-
-
             else:
-
                 for i in range(0, len(points) - 1):
-
                     pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i][0], points[i][1])
 
         if check_measurement == True:
+            if len(cut_plane_2) == 0:
+                int_faces_1, cut_plane = intersect(coords[-2], coords[-1], data_list_2, [])
 
-                if len(cut_plane_2) == 0:
+            if align_to_plane == True:
+                cut_plane_2, coord1, coord2 = align_plane(int_faces_1, cut_plane, data_list_2, coords[-2], coords[-1])
+                p1 = screen_point_convertor(coord1, scale, min_z)
+                p2 = screen_point_convertor(coord2, scale, min_z)
+                points.append([p1, p2])
+                int_faces_1 = intersect(coord1, coord2, data_list_2, cut_plane_2)[0]
 
-                    int_faces_1, cut_plane = intersect(coords[-2], coords[-1], data_list_2, [])
-
-                if align_to_plane == True:
-
-
-                    cut_plane_2, coord1, coord2 = align_plane(int_faces_1, cut_plane, data_list_2, coords[-2], coords[-1])
-
-                    p1 = screen_point_convertor(coord1, scale, min_z)
-                    p2 = screen_point_convertor(coord2, scale, min_z)
-
-                    points.append([p1, p2])
-
-                    int_faces_1 = intersect(coord1, coord2, data_list_2, cut_plane_2)[0]
-
-
-                measurement = calc_measurement(int_faces_1)
-
-                measurement_text(measurement)
+            measurement = calc_measurement(int_faces_1)
+            measurement_text(measurement)
 
 
         if len(test_data) > 0:
@@ -3042,9 +2934,7 @@ def create_screen(centre_point):
             text3('total angle = ' + str(test_data['total angle']), [0, 100], [255, 255, 255])
 
         if len(int_faces_1) > 0:
-
             for i in int_faces_1:
-
                 cutp1 = i[1][0][2]
                 cutp2 = i[1][1][2]
                 cutp1 = rotate_data(cutp1, angle)
@@ -3056,12 +2946,6 @@ def create_screen(centre_point):
                 pygame.draw.circle(DISPLAYSURF, (50, 255, 50), cutp2, 5, 2)
 
                 pygame.draw.line(DISPLAYSURF, (255, 50, 50), cutp1, cutp2)
-
-
-        #align_to_plane = False
-
-
-
 
         pygame.display.update()
         FPSClock.tick(FPS)
@@ -3104,5 +2988,7 @@ def Main():
 
     mn = create_screen(centre_point)
 
+if __name__ == '__main__':
+    Main()
 
-Main()
+
