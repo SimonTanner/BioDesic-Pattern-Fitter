@@ -3,11 +3,11 @@ from pygame.locals import *
 
 from freecad_formatter import freecad_format
 
-file_name = "test_data/Skinny-v5.txt"
+file_name = "test_data/Skinny-v5-edited.txt"
 
 file_path = os.path.join(os.getcwd(), file_name)
 
-file_path_new = file_path[:-4] + '_new_V2.txt'
+# file_path_new = file_path[:-4] + '_new_V2.txt'
 
 op_file = open(file_path, 'r')
 
