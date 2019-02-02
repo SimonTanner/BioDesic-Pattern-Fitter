@@ -1,6 +1,7 @@
 import os, pygame, sys, math, random, itertools, copy
-
 from pygame.locals import *
+
+from freecad_formatter import freecad_format
 
 file_name = "test_data/Skinny-v5.txt"
 
@@ -24,45 +25,30 @@ for line in op_file:
     data_list.append(line)
 
 def convert_data(dat):
-
     while True:
-
         try:
             while True:
-
                 try:
-
                     for o in range(0, len(dat)):
                         dat[o] = float(dat[o])
-
                         if dat[o]%1 == 0:
                             dat[o] = int(dat[o])
 
                 except ValueError:
-
                     del(dat[o])
 
                 except TypeError:
-
                     del(dat[o])
-
                 except IndexError:
-
                     break
-
                 else:
                     break
 
-
         except IndexError:
-
             break
 
         else:
-
             break
-
-
 
 def format_list(data):
 
@@ -88,130 +74,78 @@ def format_list(data):
 
 
 def check_data(data):
-
-    #data = copy.deepcopy(data1)
-
     error_val = 0.001
     errors = []
     face_delete = []
 
     for i in range(0, len(data[1])):
         for k in range(i, len(data[1])):
-
             if i != k:
-
                 diff = map(lambda a, b: abs(a - b), data[1][i], data[1][k])
-
                 if diff[0] < error_val and diff[1] < error_val and diff[2] < error_val:
-
                     errors.append([i+1, k+1])
 
     for i in range(0, len(errors)):
-
         for k in range(0, len(data[2])):
-
             while True:
-
                 try:
                     n = data[2][k].index(errors[i][1])
-
                     data[2][k][n] = errors[i][0]
 
                 except ValueError:
-
                     break
 
                 else:
-
                     break
 
     for i in range(0, len(errors)):
-
         index = len(errors) - i -1
-
         delete = errors[index][1] - 1
-
         del(data[1][delete])
 
-
-
     for i in range(0, len(data[2])):
-
         for k in range(i, len(data[2])):
-
             face_errors = []
-
             for m in range(0, len(data[2][i])):
-
                 while i != k and True:
-
                     try:
                         n = data[2][k].index(data[2][i][m])
-
                         if len(face_errors) > 0:
-
                             face_errors.index(n)
-
                         face_errors.append(n)
 
                     except ValueError:
-
                         break
 
                     else:
-
                         break
 
             if len(face_errors) == 3:
-
                 face_delete.append([i, k, face_errors])
 
         for l in range(0, len(data[2][i])-1):
-
             for p in range(1, len(data[2][i])):
-
                 if l != p:
-
                     if data[2][i][l] == data[2][i][p]:
-
                         face_delete.append([i])
 
-
     for i in range(0, len(face_delete)):
-
         index = len(face_delete) - 1 - i
-
         delete = face_delete[index][-1]
-
         del(data[2][delete])
 
     data[0][0][0] = len(data[1])
     data[0][0][1] = len(data[2])
 
-    #return data, errors, face_delete
-
-
-
-
-
-
-
 def calc_planes(data):
-
     planes = []
-
     for i in range(0, len(data[2])):
-
         point_1 = data[2][i][0] - 1
-
         point_2 = data[2][i][1] - 1
-
         point_3 = data[2][i][2] - 1
 
         vert_1 = data[1][point_1]
-
         vert_2 = data[1][point_2]
-
         vert_3 = data[1][point_3]
 
         vec_1, vec_2 =  [], []
@@ -232,12 +166,11 @@ def calc_planes(data):
 
 
 def calc_normals(vec_1, vec_2):
-
     i = vec_1[1] * vec_2[2] - vec_1[2] * vec_2[1]
     j = vec_1[2] * vec_2[0] - vec_1[0] * vec_2[2]
     k = vec_1[0] * vec_2[1] - vec_1[1] * vec_2[0]
 
-    length = (math.sqrt( (i ** 2) + (j ** 2) + (k ** 2)))
+    length = (math.sqrt((i ** 2) + (j ** 2) + (k ** 2)))
 
     i = i/length
     j = j/length
@@ -251,7 +184,6 @@ def calc_normals(vec_1, vec_2):
 
 def calc_line_eqn(vec_1, vert_1):
     # Function to calculate the equation of a line
-
     while True:
         try:
             m = vec_1[1] / vec_1[0]
@@ -290,27 +222,20 @@ def calc_line_eqn(vec_1, vert_1):
     y = vert_1[1]
     z = vert_1[2]
 
-    #print m, n , o
-
     if m != None:
         c = y - m * x
-
     else:
         c = x
 
     if n != None:
         b = z - n * x
-
     else:
         b = x
 
     if o != None:
         a = y - o * z
-
     else:
         a = z
-
-    #a = (y - n * x) / (z - m * x)
 
     eqn_xy = [m, c]
     eqn_xz = [n, b]
@@ -361,19 +286,16 @@ def calc_line_eqn_2(point_1, point_2):
 
     if m != None:
         c = y - m * x
-
     else:
         c = x
 
     if n != None:
         b = z - n * x
-
     else:
         b = x
 
     if o != None:
         a = y - o * z
-
     else:
         a = z
 
@@ -391,7 +313,6 @@ def equations(data):
     lines_eqn = []
 
     for i in range(0, len(data[2])):
-
         vert_1 = (data[2][i][0] - 1)
         vert_2 = (data[2][i][1] - 1)
         vert_3 = (data[2][i][2] - 1)
@@ -399,7 +320,6 @@ def equations(data):
         vec_1, vec_2, vec_3 =  [], [], []
 
         for n in range(0, len(data[1][vert_1])):
-
             vec_1.append(data[1][vert_2][n] - data[1][vert_1][n])
             vec_2.append(data[1][vert_3][n] - data[1][vert_2][n])
             vec_3.append(data[1][vert_1][n] - data[1][vert_3][n])
@@ -412,14 +332,12 @@ def equations(data):
 
         lines_eqn.append([i+1, [(vert_1 + 1), vec_1, eqn_1], [(vert_2 + 1), vec_2, eqn_2], [(vert_3 + 1), vec_3, eqn_3], normal])
 
-
     return(lines_eqn)
 
 
 
 def vert_connects(data):
     connections = []
-
     for n in range(1, data[0][0][0] + 1):
         connections.append([n])
         connects = []
@@ -590,17 +508,11 @@ def plane_intersect(plane, eqns):
             elif i == 2:
                 point[1] = eqns[i][1]
 
-    #print 'initial coords = ', point
-
-
     # 2nd test to see if the plane is of the form y = constant (i.e. if plane is perpendicular to an axis)
-
     for i in range(0, len(plane) - 2):
         for k in range(1, len(plane) - 1):
             if plane[i] == 0.0 and plane[k] == 0.0 and i != k:
-
                 index = 3 - i - k
-
                 p = plane[3] / plane[index]
 
                 if point[index] == None:
@@ -614,7 +526,6 @@ def plane_intersect(plane, eqns):
     while True:
         try:
             ind = point.index(False)
-
             if type(point[ind]) == bool:
                 unfound = True
 
@@ -668,7 +579,6 @@ def plane_intersect(plane, eqns):
                 eqn_0 = inv_eqn(eqns[0])
                 eqn_1 = eqns[0]
 
-
             if plane[i] != 0.0 or plane[k] != 0.0:
                 point[i] = plane[3] - plane[index] * point[index] - plane[k] * eqn_1[1]
                 point[i] /= (plane[i] + plane[k] * eqn_1[0])
@@ -696,8 +606,6 @@ def plane_intersect(plane, eqns):
 
                 point[i] = eqn_0[0] * point[index] + eqn_0[1]
                 point[k] = eqn_1[0] * point[index] + eqn_1[1]
-
-
 
         elif len(point_check) == 2:
             index = 3 - sum(point_check)
@@ -738,8 +646,6 @@ def plane_intersect(plane, eqns):
         point = None
 
     return point
-
-
 
 
 def point_distance(vert_1, vert_2):
@@ -913,11 +819,6 @@ def attached_faces(equations, data):
 
                 joined_faces.append(plane_1[3])
 
-        '''for n in joined_faces:
-
-            index_1 = find_vert(equations[n-1], vert_1_no)
-            point_4 = plane_intersect(plane_1, equations[n - 1][index_1])'''
-
         faces.append(joined_faces)
 
     return(faces)
@@ -943,7 +844,6 @@ def index_verts(equations, face, vert):
 
 
 def line_intersection(line_1, line_2):
-
     #function to calculate the point of intersect between two given lines and return the coords
 
     m1, c1 = line_1[0]
@@ -981,7 +881,6 @@ def line_intersection(line_1, line_2):
             y = o1 * z + a1
 
     return [x, y, z]
-
 
 
 def check_equation(point, eqn):
@@ -1284,7 +1183,6 @@ def intersect(coord_1, coord_2, data, aligned_plane):
 
     else:
         plane = aligned_plane
-    #vec_1_2 = map(lambda a, b: a - b, coord_2, coord_1)
 
     intersecting = []
 
@@ -1357,7 +1255,6 @@ def align_plane(int_faces, plane, data, coord1, coord2):
                     elif dot_prod < 0:
                         verts_below.append(vert)
 
-
         centre_above = calc_centre(verts_above)
         centre_below = calc_centre(verts_below)
         line_eqn = calc_line_eqn_2(centre_above, centre_below)
@@ -1420,8 +1317,6 @@ def final_norm(line_length, vert_to_cut_point, offset):
     perp_norm_scal_2 = offset - (c - c1) * (perp_norm_scal_1 - offset) /c1
 
     return perp_norm_scal_1, perp_norm_scal_2
-
-
 
 
 def normal_move_calc(total_length, move_dist, l_1):
@@ -1596,7 +1491,6 @@ def rotate_data(coord, angle_z):
     return [x2, y2, z2]
 
 
-
 def delta_z(data): 
     #Calculates the distance between heighest & lowest vertex
     delta_z_list = []
@@ -1607,7 +1501,6 @@ def delta_z(data):
     min_point = delta_z_list.index(min(delta_z_list))
     max_point = delta_z_list.index(max(delta_z_list))
 
-    #return(min(delta_z_list), max(delta_z_list), min_point, max_point)
     del_z = max(delta_z_list) - min(delta_z_list)
     del_z_min = min(delta_z_list)
 
@@ -1655,8 +1548,6 @@ def calc_face_centre(face, data):
     centre = map(lambda a: a / len(data_verts), centre)
 
     return centre
-
-
 
 
 def screen_point_convertor(point, scale, min_z):
@@ -1946,6 +1837,7 @@ def quit_game(data, save):
         start_num = 1
         file_path_new = check_file_exists(file_path_new, start_num)
         op_file_new = open(file_path_new, 'w')
+        data = freecad_format(data)
         op_file_new.write(str(data))
         op_file_new.close()
 
@@ -2029,7 +1921,6 @@ def create_screen(centre_point):
                     quit_scr = True
 
                 elif event.type == KEYDOWN:
-
                     if event.key == K_ESCAPE:
                         quit_scr = True
 
@@ -2098,6 +1989,7 @@ def create_screen(centre_point):
                         coords = []
                         cut_plane = []
                         cut_plane_2 = []
+                        int_faces = []
 
                     elif event.key == K_a:
                         if len(cut_plane) > 0 and align_to_plane == False:
@@ -2185,12 +2077,13 @@ def create_screen(centre_point):
 
                     if len(cut_plane_2) == 0 or clicked == True or align_to_plane == False:
                         if plane_aligned == True:
-                            del(coords[-2:])
-
+                            print coords
+                            # del(coords[-2:])
                         try:
                             int_faces_1, cut_plane = intersect(coords[-2], coords[-1], data_list_2, [])
 
-                        except IndexError:
+                        except IndexError as error:
+                            print(error)
                             break
 
                         plane_aligned == False
@@ -2198,13 +2091,14 @@ def create_screen(centre_point):
                     if align_to_plane == True and len(cut_plane_2) == 0:
                         cut_plane_2, coord1, coord2 = align_plane(int_faces_1, cut_plane, data_list_2, coords[-2], coords[-1])
 
-                        #coords.append(coord1)
-                        #coords.append(coord2)
-
                         p1 = screen_point_convertor(coord1, scale, min_z)
                         p2 = screen_point_convertor(coord2, scale, min_z)
                         points.append([p1, p2])
                         int_faces_1 = intersect(coord1, coord2, data_list_2, cut_plane_2)[0]
+                        plane_aligned = True
+
+                    elif align_to_plane == True and len(cut_plane_2) > 0:
+                        int_faces_1 = intersect(coords[-2], coords[-1], data_list_2, cut_plane_2)[0]
                         plane_aligned = True
 
                     measurement = calc_measurement(int_faces_1)
@@ -2228,12 +2122,11 @@ def create_screen(centre_point):
                 measurement = calc_measurement(int_faces_1)
                 measurement_text(measurement)
 
-
             if len(test_data) > 0:
                 text3('offset = ' + str(test_data['delta_h']),[0, 80], [255, 255, 255])
                 text3('total angle = ' + str(test_data['total angle']), [0, 100], [255, 255, 255])
 
-            if len(int_faces_1) > 0:
+            if len(int_faces_1) > 0 and len(points) > 0:
                 for i in int_faces_1:
                     cutp1 = i[1][0][2]
                     cutp2 = i[1][1][2]
@@ -2266,14 +2159,12 @@ def init_data():
     #int_faces, plane_eqn = intersect(c1, c2, data_list)
 
 
-def Main():
-
+def main():
     format_list(data_list)
-
     #datalist = check_data(data_list)[0]
 
     centre_point = calc_centre(data_list[1])
     create_screen(centre_point)
 
 if __name__ == '__main__':
-    Main()
+    main()
