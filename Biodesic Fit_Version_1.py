@@ -3,7 +3,7 @@ from pygame.locals import *
 
 from freecad_formatter import freecad_format
 
-file_name = "test_data/Skinny-v5-edited.txt"
+file_name = "test_data/skinny-v5 - edited-1.txt"
 
 file_path = os.path.join(os.getcwd(), file_name)
 
@@ -1657,13 +1657,13 @@ def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z):
     centre_point = rotate_data(centre_point, angle)
     eqns_2 = equations(data)
     av_normals = []
+    colour_black_grey = (50, 50, 50)
 
     for i in range(0, len(data[1])):
         av_normal = avg_normal((i + 1), data, eqns_2)
         av_normals.append(av_normal)
 
     for i in range(0, len(data[2])):
-
         polygon = []
         for n in range(0, len(data[2][i])):
 
@@ -1681,10 +1681,10 @@ def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z):
         if len(polygon) > 0:
             for k in range(0, len(polygon)):
                 if k == len(polygon) - 1:
-                    pygame.draw.line(display, (255, 0 , 0), polygon[k], polygon[0], 1)
+                    pygame.draw.line(display, colour_black_grey, polygon[k], polygon[0], 1)
 
                 else:
-                    pygame.draw.line(display, (255, 0 , 0), polygon[k], polygon[k+1], 1)
+                    pygame.draw.line(display, colour_black_grey, polygon[k], polygon[k+1], 1)
 
 
         polygon_list.append(polygon)
@@ -1845,10 +1845,10 @@ def quit_game(data, save):
     sys.exit()
 
 
-def create_screen(centre_point):
+def create_screen(data_list):
 
-    global data_list#, polygon_list, int_faces_1, points, coords, cut_plane, cut_plane_2
-
+    # global data_list#, polygon_list, int_faces_1, points, coords, cut_plane, cut_plane_2
+    centre_point = calc_centre(data_list[1])
     data_list_2 = copy.deepcopy(data_list)
 
 
@@ -1857,6 +1857,7 @@ def create_screen(centre_point):
     pygame.key.set_repeat(50, 30)
 
     angle = 0
+    delta_ang_pheta = 2
     points = []
     SHIFT = False
     CONTROL = False
@@ -1912,11 +1913,11 @@ def create_screen(centre_point):
             measurement_text2(measurement_2, [0, 20])
 
             if len(coords) > 0:
-
                 text1(coords[-1], [0, 60])
                 text1(coords[-2], [0, 40])
 
             for event in pygame.event.get():
+                print event
                 if event.type == QUIT:
                     quit_scr = True
 
@@ -1930,14 +1931,17 @@ def create_screen(centre_point):
                     elif event.key == K_n and quit_scr == True:
                         quit_game(data_list_2, False)
 
-                    elif event.key == K_c and quit_scr == True:
+                    elif event.key == K_c and quit_scr == True and not CONTROL:
                         quit_scr = False
 
+                    elif event.key == K_c and CONTROL == True:
+                        quit_scr = True
+
                     elif event.key == K_LEFT:
-                        angle += 1
+                        angle += delta_ang_pheta
 
                     elif event.key == K_RIGHT:
-                        angle -= 1
+                        angle -= delta_ang_pheta
 
                     elif event.key == K_f:
                         angle = 0
@@ -2162,9 +2166,7 @@ def init_data():
 def main():
     format_list(data_list)
     #datalist = check_data(data_list)[0]
-
-    centre_point = calc_centre(data_list[1])
-    create_screen(centre_point)
+    create_screen(data_list)
 
 if __name__ == '__main__':
     main()
