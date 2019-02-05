@@ -3,7 +3,7 @@ from pygame.locals import *
 
 from freecad_formatter import freecad_format
 
-file_name = "test_data/skinny-v5 - edited-1.txt"
+file_name = "test_data/Skinny-v5.txt"
 
 file_path = os.path.join(os.getcwd(), file_name)
 
@@ -91,10 +91,8 @@ def check_data(data):
                 try:
                     n = data[2][k].index(errors[i][1])
                     data[2][k][n] = errors[i][0]
-
                 except ValueError:
                     break
-
                 else:
                     break
 
@@ -251,34 +249,28 @@ def calc_line_eqn_2(point_1, point_2):
     while True:
         try:
             m = dy / dx
-
         except ZeroDivisionError:
             # if dy/dx = inf then m is set to False then m_1 is set to 0 = dx/dy
             m = None
             break
-
         else:
             break
 
     while True:
         try:
             n = dz / dx
-
         except ZeroDivisionError:
             n = None
             break
-
         else:
             break
 
     while True:
         try:
             o = dy / dz
-
         except ZeroDivisionError:
             o = None
             break
-
         else:
             break
 
@@ -358,7 +350,6 @@ def vert_connects(data):
 
                 except ValueError:
                     break
-
                 else:
                     break
 
@@ -383,17 +374,14 @@ def face_connects(data):
                     while True:
                         try:
                             connects.index(j + 1)
-
                         except ValueError:
                             connects.append(j + 1)
                             break
-
                         else:
                             break
 
                 except ValueError:
                     break
-
                 else:
                     break
 
