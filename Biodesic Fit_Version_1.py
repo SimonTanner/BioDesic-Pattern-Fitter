@@ -1213,25 +1213,14 @@ def plane_from_vector(vector, vert_1):
 
 def move_vertices(int_faces, plane_eqn, measurement_2, data):
     face_eqns = equations(data)
-
-    #int_faces, plane_eqn = intersect(coord_1, coord_2, data)
-
     plane_eqn = plane_eqn[-1]
-
     measurement_1 = calc_measurement(int_faces)
-
     ratio = measurement_2 / measurement_1
-
     delta_l = measurement_2 - measurement_1
-
     delta_h, delta_tan_ang, sum_ang = 0.0, 0.0, 0.0
-
     offset_calc = {'faces':{}}
-
     angles, lines, normals, move_scale, offset, moved = {}, {}, {}, {}, {}, {}
-
     move_vecs = {'vectors' : {}, 'numbers' : {}}
-
     test_dist = delta_l / len(int_faces)
 
     for i in range(0, len(int_faces)):
