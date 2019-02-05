@@ -2,16 +2,11 @@ import os, pygame, sys, math, random, itertools, copy
 from pygame.locals import *
 
 from freecad_formatter import freecad_format
+from input_file_formatter import FileFormatter
 
 file_name = "test_data/Skinny-v5.txt"
 
 file_path = os.path.join(os.getcwd(), file_name)
-
-# file_path_new = file_path[:-4] + '_new_V2.txt'
-
-op_file = open(file_path, 'r')
-
-data_list = []
 
 pygame.init()
 
@@ -20,120 +15,6 @@ FPSClock = pygame.time.Clock()
 
 Screen_width = 1200
 Screen_height = 800
-
-for line in op_file:
-    data_list.append(line)
-
-def convert_data(dat):
-    while True:
-        try:
-            while True:
-                try:
-                    for o in range(0, len(dat)):
-                        dat[o] = float(dat[o])
-                        if dat[o]%1 == 0:
-                            dat[o] = int(dat[o])
-
-                except ValueError:
-                    del(dat[o])
-
-                except TypeError:
-                    del(dat[o])
-                except IndexError:
-                    break
-                else:
-                    break
-
-        except IndexError:
-            break
-
-        else:
-            break
-
-def format_list(data):
-
-    for i in range(0, len(data)):
-        data[i] = data[i].translate(None, '[')
-        data[i] = data[i].translate(None, '\n')
-        data[i] = data[i].split(']')
-
-    for m in range(0, len(data)):
-         for n in range(0, len(data[m])):
-             data[m][n] = data[m][n].split(',')
-
-    for m in range(0, len(data)):
-        for n in range(0, len(data[m])):
-            convert_data(data[m][n])
-
-    for m in range(0, len(data)):
-        for n in range(0, len(data[m])):
-            if len(data[m][n]) == 0:
-                del(data[m][n])
-
-    check_data(data)
-
-
-def check_data(data):
-    error_val = 0.001
-    errors = []
-    face_delete = []
-
-    for i in range(0, len(data[1])):
-        for k in range(i, len(data[1])):
-            if i != k:
-                diff = map(lambda a, b: abs(a - b), data[1][i], data[1][k])
-                if diff[0] < error_val and diff[1] < error_val and diff[2] < error_val:
-                    errors.append([i+1, k+1])
-
-    for i in range(0, len(errors)):
-        for k in range(0, len(data[2])):
-            while True:
-                try:
-                    n = data[2][k].index(errors[i][1])
-                    data[2][k][n] = errors[i][0]
-                except ValueError:
-                    break
-                else:
-                    break
-
-    for i in range(0, len(errors)):
-        index = len(errors) - i -1
-        delete = errors[index][1] - 1
-        del(data[1][delete])
-
-    for i in range(0, len(data[2])):
-        for k in range(i, len(data[2])):
-            face_errors = []
-            for m in range(0, len(data[2][i])):
-                while i != k and True:
-                    try:
-                        n = data[2][k].index(data[2][i][m])
-                        if len(face_errors) > 0:
-                            face_errors.index(n)
-                        face_errors.append(n)
-
-                    except ValueError:
-                        break
-
-                    else:
-                        break
-
-            if len(face_errors) == 3:
-                face_delete.append([i, k, face_errors])
-
-        for l in range(0, len(data[2][i])-1):
-            for p in range(1, len(data[2][i])):
-                if l != p:
-                    if data[2][i][l] == data[2][i][p]:
-                        face_delete.append([i])
-
-    for i in range(0, len(face_delete)):
-        index = len(face_delete) - 1 - i
-        delete = face_delete[index][-1]
-        del(data[2][delete])
-
-    data[0][0][0] = len(data[1])
-    data[0][0][1] = len(data[2])
 
 def calc_planes(data):
     planes = []
@@ -2152,8 +2033,10 @@ def init_data():
 
 
 def main():
-    format_list(data_list)
+    # format_list(data_list)
     #datalist = check_data(data_list)[0]
+    formatter = FileFormatter(file_name)
+    data_list = formatter.data
     create_screen(data_list)
 
 if __name__ == '__main__':
