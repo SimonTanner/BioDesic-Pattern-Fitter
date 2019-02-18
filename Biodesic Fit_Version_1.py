@@ -6,6 +6,8 @@ from input_file_formatter import FileFormatter
 
 file_name = "test_data/Skinny-v5.txt"
 
+file_name = "test_data/test.obj"
+
 file_path = os.path.join(os.getcwd(), file_name)
 
 pygame.init()
