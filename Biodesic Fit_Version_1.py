@@ -2,11 +2,11 @@ import os, pygame, sys, math, random, itertools, copy
 from pygame.locals import *
 
 from freecad_formatter import freecad_format
-from input_file_formatter import FileFormatter
+from input_file_formatter import InputFormatter
 
 file_name = "test_data/Skinny-v5.txt"
 
-file_name = "test_data/test.obj"
+file_name = "test_data/Skinny-v5.obj"
 
 file_path = os.path.join(os.getcwd(), file_name)
 
@@ -570,8 +570,6 @@ def face_find(data, vert_1_no, vert_2_no, i):
     return(joined_faces)
 
 
-
-
 def find_vert(eqns, vert_no):
     for y in range(0, len(eqns)):
         while True:
@@ -589,8 +587,6 @@ def find_vert(eqns, vert_no):
                 break
 
     return location
-
-
 
 
 def two_plane_intersection(plane_1, plane_2):
@@ -1432,7 +1428,8 @@ def sort_polygons(polygons):
     return polygons[2][1]
 
 
-def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no, show_av_norms, show_edges): #Draws the polygons of each face as different colours
+def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no, show_av_norms, show_edges):
+    #Draws the polygons of each face as different colours
 
     polygon_list = []
     #height = pygame.display.get_height()
@@ -1511,7 +1508,8 @@ def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no
     return scale, min_z, polygon_list
 
 
-def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z): #Draws the polygons of each face as different colours
+def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z):
+    #Draws the polygons of each face as different colours
 
     polygon_list = []
     centre_point = rotate_data(centre_point, angle)
@@ -1669,7 +1667,6 @@ def text4(text, screen_coord, colour):
     textsurf.center = ( screen_coord[0], screen_coord[1] )
 
     display.blit(textobj, textsurf)
-
 
 
 def quit_screen():
@@ -2012,7 +2009,6 @@ def create_screen(data_list):
             print "Oh no!"
 
 
-
 def init_data():
     global eqns, face_eqns, attached_f, int_faces, plane_eqn, c1, c2, c3
     eqns = equations(data_list)
@@ -2024,8 +2020,6 @@ def init_data():
 
 
 def main():
-    # format_list(data_list)
-    #datalist = check_data(data_list)[0]
     formatter = FileFormatter(file_name)
     data_list = formatter.data
     create_screen(data_list)

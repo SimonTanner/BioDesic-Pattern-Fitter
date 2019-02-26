@@ -2,7 +2,7 @@ import os
 
 # Functions for formatting data ready for processing by pattern fitter program
 
-class FileFormatter():
+class InputFormatter():
     
     def __init__(self, file_name, file_type=None):
         self.error_val = 0.001
