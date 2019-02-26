@@ -3,6 +3,7 @@ from pygame.locals import *
 
 from freecad_formatter import freecad_format
 from input_file_formatter import InputFormatter
+from output_file_formatter import OutputFormatter
 
 file_name = "test_data/Skinny-v5.txt"
 
@@ -1690,21 +1691,13 @@ def check_file_exists(file_path, file_number):
 
 def quit_game(data, save):
     if save == True:
-        file_path_new = file_path[:-4] + '_new_V{}.txt'
-        start_num = 1
-        file_path_new = check_file_exists(file_path_new, start_num)
-        op_file_new = open(file_path_new, 'w')
-        data = freecad_format(data)
-        op_file_new.write(str(data))
-        op_file_new.close()
-
+        output_formatter = OutputFormatter(file_path, "obj")
+        output_formatter.save_new_file_name(data)
     pygame.quit()
     sys.exit()
 
 
 def create_screen(data_list):
-
-    # global data_list#, polygon_list, int_faces_1, points, coords, cut_plane, cut_plane_2
     centre_point = calc_centre(data_list[1])
     data_list_2 = copy.deepcopy(data_list)
 
@@ -1774,7 +1767,7 @@ def create_screen(data_list):
                 text1(coords[-2], [0, 40])
 
             for event in pygame.event.get():
-                print event
+                # print event
                 if event.type == QUIT:
                     quit_scr = True
 
@@ -2020,7 +2013,7 @@ def init_data():
 
 
 def main():
-    formatter = FileFormatter(file_name)
+    formatter = InputFormatter(file_name)
     data_list = formatter.data
     create_screen(data_list)
 
