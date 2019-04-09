@@ -1,5 +1,6 @@
 import os, pygame, sys, math, random, itertools, copy
 from pygame.locals import *
+import json
 
 from freecad_formatter import freecad_format
 from input_file_formatter import InputFormatter
@@ -243,8 +244,6 @@ def vert_connects(data):
     return(connections)
 
 
-
-
 def face_connects(data):
     connections = []
 
@@ -272,7 +271,6 @@ def face_connects(data):
             connections[n-1].append(connects)
 
     return(connections)
-
 
 
 def avg_normal(vert, data, equations):
@@ -1489,13 +1487,12 @@ def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no
                         pygame.draw.line(display, (0, 255, 0), polygon[k], polygon[k+1], 1)
 
         if show_av_norms == True:
-
+            print "showing normals"
+            print av_normals
             for i in range(0, len(av_normals)):
-
                 av_norm_rotated = rotate_data(av_normals[i], angle)
-
+                # print av_norm_rotated[1]
                 if av_norm_rotated[1] >= 0:
-
                     p1 = data[1][i]
                     normal = map(lambda a: a * 30 / scale , av_normals[i])
                     p2 = map(lambda a, b: a + b, p1, normal)
@@ -1506,7 +1503,7 @@ def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no
                     p2 = rotate_data(p2, angle)
                     p2 = screen_point_convertor(p2, scale, min_z)
 
-                    pygame.draw.line(display, [0, 0, 255], p1, p2, 1)
+                    pygame.draw.line(display, [255, 255, 255], p1, p2, 1)
 
     return scale, min_z, polygon_list
 
@@ -2017,7 +2014,13 @@ def init_data():
 def main():
     formatter = InputFormatter(file_name)
     data_list = formatter.data
+    with open("data.txt", "w+") as file:
+        json.dump(data_list, file, indent=4)
+        file.close()
+    with open("eqns.txt", "w+") as file:
+        json.dump(equations(data_list), file, indent=4)
+        file.close()
     create_screen(data_list)
 
 if __name__ == '__main__':
-    main()
+    main()b
