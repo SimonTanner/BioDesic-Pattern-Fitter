@@ -1,5 +1,6 @@
 import os, pygame, sys, math, random, itertools, copy
 from pygame.locals import *
+import json
 
 from freecad_formatter import freecad_format
 from input_file_formatter import InputFormatter
@@ -231,7 +232,6 @@ def vert_connects(data):
                                     connects.append(data[2][j][k])
                                 else:
                                     break
-
                 except ValueError:
                     break
                 else:
@@ -243,10 +243,19 @@ def vert_connects(data):
     return(connections)
 
 
-
-
 def face_connects(data):
+    """
+    Builds a list containing sub lists with the 1st item being the vert no
+    and then another sublist of all face nos connected to it.
+    E.g.
+    [
+        [1, [2, ...]],
+        [2, [3, 45, 78, 5]],
+        [3, [...]]
+    ]
+    """
     connections = []
+    counts = []
 
     for n in range(1, data[0][0][0] + 1):
         connections.append([n])
@@ -254,6 +263,9 @@ def face_connects(data):
         for j in range(0, data[0][0][1]):
             while True:
                 try:
+                    # Hacky means to break the loop by generating an error
+                    # when we can't find the vert no in the face list of verts
+                    data[2][j].index(n)
                     while True:
                         try:
                             connects.index(j + 1)
@@ -262,35 +274,45 @@ def face_connects(data):
                             break
                         else:
                             break
-
                 except ValueError:
                     break
                 else:
                     break
-
         if len(connects) > 0:
             connections[n-1].append(connects)
-
+            counts.append(len(connects))
+    check_connects = len(list(set(counts)))
+    assert check_connects > 1, "WARNING: The length of all connections produced by face_connects fn are the same"
     return(connections)
 
 
-
-def avg_normal(vert, data, equations):
+def avg_normal(vert_no, data, equations, connected_faces=None):
+    """
+    Calculates the average normal for a vert_no, the data_list and set of equations 
+    """
     av_norm = [0.0, 0.0, 0.0]
-    connections = face_connects(data)
-
-    for i in range(0, len(connections[vert - 1][1])):
-        face = connections[vert - 1][1][i] - 1
+    # Only calculate the connected_faces if required
+    if connected_faces == None:
+        connected_faces = face_connects(data)
+    # Loop through all connected face_nos in the list
+    for i in range(0, len(connected_faces[vert_no - 1][1])):
+        face = connected_faces[vert_no - 1][1][i] - 1
+        # Cumulative vector sum of all face's normals
         av_norm = map(lambda a, b: a + b, equations[face][4], av_norm)
-
     av_norm_len = math.sqrt(sum(map(lambda x: x ** 2, av_norm)))
-
     for n in range(0, 3):
         av_norm[n] /= av_norm_len
-
     return(av_norm)
 
+def calculate_all_avg_normals(data, equations):
+    connected_faces = face_connects(data)
+    av_normals = []
 
+    for i in range(0, len(data[1])):
+        av_normal = avg_normal((i + 1), data, equations, connected_faces)
+        av_normals.append(av_normal)
+    assert len(av_normals) == len(data[1]), "No. of normals not equal to no. of vertices"
+    return av_normals
 
 
 def plane_cutter(coord_1, coord_2, coord_3):
@@ -312,7 +334,9 @@ def plane_cutter(coord_1, coord_2, coord_3):
 
 
 def vector_in_plane(plane, vector):
-    #projects a vector onto a given plane
+    """
+    projects a vector onto a given plane
+    """
     normal = plane[:3]
     normal_mod_sqrd = sum(map(lambda a: a**2, normal))
 
@@ -341,10 +365,17 @@ def inv_eqn(equation):
     return [grad, const]
 
 
-
-
 def plane_intersect(plane, eqns):
-    #Calculates the point of intersection between a plane and a line and returns the coords of this point
+    """
+    Calculates the point of intersection between a plane and a line and returns the coords
+    of this point.
+    eqns in form of:
+        dy/dx = eqns[0][0]
+        dz/dx = eqns[1][0]
+        dy/dz = eqns[2][0]
+
+    constants for each = eqns[n][1]
+    """
     Error_val = 0.01
     # dy/dx = eqns[0][0]
     # dz/dx = eqns[1][0]
@@ -520,6 +551,9 @@ def plane_intersect(plane, eqns):
 
 
 def point_distance(vert_1, vert_2):
+    """
+    Scalar distance between two vectors
+    """
     distance = 0.0
 
     for n in range(0, len(vert_1)):
@@ -530,13 +564,13 @@ def point_distance(vert_1, vert_2):
     return(distance)
 
 
-def face_find(data, vert_1_no, vert_2_no, i):
+def face_find(data, vert_1_no, vert_2_no, face_no):
 
     joined = []
     joined_faces = []
 
     for n in range(0, len(data[2])):
-        if i != n:
+        if face_no != n:
             while True:
                 try:
                     data[2][n].index(vert_1_no + 1)
@@ -571,26 +605,22 @@ def face_find(data, vert_1_no, vert_2_no, i):
 
 
 def find_vert(eqns, vert_no):
+    # Not currently being used
+    """
+    Finds the index of the equation relating to a particular vertex
+    """
     for y in range(0, len(eqns)):
-        while True:
-            try:
-                # x = eqns[y].index(vert_no)
-                location = y
-
-            except AttributeError:
-                break
-
-            except ValueError:
-                break
-
-            else:
-                break
-
-    return location
+        if vert_no in eqns[y]:
+            return y
+        else:
+            return None
 
 
 def two_plane_intersection(plane_1, plane_2):
-    # Function to calculate the line of intersection between two planes in the form mx + ny +oz + D = 0
+    """
+    Function to calculate the line of intersection between two planes in the form:
+        mx + ny +oz + D = 0
+    """
 
     x1, y1, z1, D1 = map(lambda a: float(a),[plane_1[0], plane_1[1], plane_1[2], plane_1[3]])
     x2, y2, z2, D2 = map(lambda a: float(a),[plane_2[0], plane_2[1], plane_2[2], plane_2[3]])
@@ -628,8 +658,6 @@ def two_plane_intersection(plane_1, plane_2):
     eqn_zy = [o, a]
 
     return([eqn_xy, eqn_xz, eqn_zy])
-
-
 
 
 def attached_faces(equations, data):
@@ -711,8 +739,9 @@ def index_verts(equations, face, vert):
 
 
 def line_intersection(line_1, line_2):
-    #function to calculate the point of intersect between two given lines and return the coords
-
+    """
+    function to calculate the point of intersect between two given lines and return the coords
+    """
     m1, c1 = line_1[0]
     m2, c2 = line_2[0]
     n1, b1 = line_1[1]
@@ -721,7 +750,6 @@ def line_intersection(line_1, line_2):
     o2, a2 = line_2[2]
 
     if m1 and m2 != None:
-
         x = (c2 - c1) / (m1 - m2)
         y = m1 * x + c1
 
@@ -729,11 +757,9 @@ def line_intersection(line_1, line_2):
         if m1 == None and m2 != None:
             x = c1
             y = m2 * x + c2
-
         elif m2 == None and m1 != None:
             x = c2
             y = m1 * x + c1
-
 
     if o1!= None and o2 != None:
         z = (a2 - a1) / (o1 - o2)
@@ -742,7 +768,6 @@ def line_intersection(line_1, line_2):
         if o1 == None:
             z = a1
             y = o2 * z + a2
-
         elif o2 == None:
             z = a2
             y = o1 * z + a1
@@ -787,12 +812,11 @@ def check_equation(point, eqn):
     return is_on_line
 
 
-
-
-
 def vector_ang(vec_1, vec_2):
-    # Calculate the angle between two vectors
-    # While loop added due to value error generated in two vectors were the same but float nums
+    """
+    Calculate the angle between two vectors
+    """
+    # While loop added due to value error generated if two vectors were the same but float nums
     while True:
         try:
             dot_prod = sum(map(lambda a, b: a * b, vec_1, vec_2))
@@ -1039,7 +1063,7 @@ def correct_normals(data):
     return(vectors, points, angles, eqns_2)
 
 
-def intersect(coord_1, coord_2, data, aligned_plane):
+def get_intersect_face_plane(coord_1, coord_2, data, aligned_plane):
     global int_faces
     int_faces = []
     eqns = equations(data)
@@ -1057,7 +1081,7 @@ def intersect(coord_1, coord_2, data, aligned_plane):
         int_points = []
 
         for n in range(1, len(eqns[i]) - 1):
-            point_1 = plane_intersect( plane, eqns[i][n][2] )
+            point_1 = plane_intersect(plane, eqns[i][n][2] )
             face = eqns[i][0]
 
             if point_1 != None:
@@ -1212,7 +1236,7 @@ def plane_from_vector(vector, vert_1):
     return plane_eqn
 
 
-def move_vertices(int_faces, plane_eqn, measurement_2, data):
+def move_vertices(int_faces, plane_eqn, measurement_2, data, connected_faces=None):
     face_eqns = equations(data)
     plane_eqn = plane_eqn[-1]
     measurement_1 = calc_measurement(int_faces)
@@ -1223,6 +1247,8 @@ def move_vertices(int_faces, plane_eqn, measurement_2, data):
     angles, lines, normals, move_scale, offset, moved = {}, {}, {}, {}, {}, {}
     move_vecs = {'vectors' : {}, 'numbers' : {}}
     test_dist = delta_l / len(int_faces)
+    if connected_faces is None:
+        connected_faces = face_connects(data)
 
     for i in range(0, len(int_faces)):
         vert_1_no = int_faces[i][1][0][0]
@@ -1270,10 +1296,10 @@ def move_vertices(int_faces, plane_eqn, measurement_2, data):
         d_1_2 = point_distance(vert_1, vert_2)
         d_3_4 = point_distance(vert_3, vert_4)
 
-        av_norm_1 = avg_normal((vert_1_no), data, face_eqns)
-        av_norm_2 = avg_normal((vert_2_no), data, face_eqns)
-        av_norm_3 = avg_normal((vert_3_no), data, face_eqns)
-        av_norm_4 = avg_normal((vert_4_no), data, face_eqns)
+        av_norm_1 = avg_normal((vert_1_no), data, face_eqns, connected_faces)
+        av_norm_2 = avg_normal((vert_2_no), data, face_eqns, connected_faces)
+        av_norm_3 = avg_normal((vert_3_no), data, face_eqns, connected_faces)
+        av_norm_4 = avg_normal((vert_4_no), data, face_eqns, connected_faces)
 
         #calculate the planes perpendicular to the lines connecting vertices:
         plane_1 = plane_from_vector(vector_1_2, vert_1)
@@ -1431,20 +1457,14 @@ def sort_polygons(polygons):
     return polygons[2][1]
 
 
-def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no, show_av_norms, show_edges):
+def display_model(data, display, angle, centre_point, scale, min_z, show_face_no, show_av_norms, show_edges):
     #Draws the polygons of each face as different colours
 
     polygon_list = []
     #height = pygame.display.get_height()
     centre_point = rotate_data(centre_point, angle)
     #eqns_2 = correct_normals(data)[-1:][0]
-    eqns_2 = equations(data)
-
-    av_normals = []
-
-    for i in range(0, len(data[1])):
-        av_normal = avg_normal((i + 1), data, eqns_2)
-        av_normals.append(av_normal)
+    eqns_2 = equations(data)    
 
     for i in range(0, len(data[2])):
         polygon = []
@@ -1454,26 +1474,35 @@ def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no
             vert_no = data[2][i][n]
             points = rotate_data(data[1][(vert_no - 1)], angle)
             points = screen_point_convertor(points, scale, min_z)
-            normals = eqns_2[i][4]
-            normals = rotate_data(normals, angle)
+            normal = eqns_2[i][4]
+            normal = rotate_data(normal, angle)
 
-            if normals[1] > 0.0:
+            if normal[1] > 0.0:
                 polygon.append(points)
 
         if len(polygon) > 2:
             polygon_center = calc_face_centre(face_no, data)
             polygon_center = rotate_data(polygon_center, angle)
-            polygon_list.append([i, polygon, polygon_center])
+            polygon_list.append([i, polygon, polygon_center, normal])
 
-    polygon_list = sorted(polygon_list, key = sort_polygons)
+    polygon_list = sorted(polygon_list, key=sort_polygons)
 
     for i in range(0, len(polygon_list)):
         polygon = polygon_list[i][1]
         face_no = polygon_list[i][0]
+        normal = polygon_list[i][3]
+        # if face_no == 105:
+        #     print angle
+        #     print normal
 
         if len(polygon) > 0:
+            dot_prod = abs(sum(map(lambda a, b: a * b, normal, [0.0, 1.0, 0.0])))
+            dot_prod = dot_prod ** 2
+            # print dot_prod
             colour = int(255 * i / len(data[2]))
-            pygame.draw.polygon(display, (255, 0 + colour, 255 - colour), polygon, 0)
+            colour_1 = int(200 * dot_prod)
+            colour_2 = int(255 * dot_prod)
+            pygame.draw.polygon(display, (255 , colour_2, 255 - colour_1), polygon, 0)
 
             if show_face_no == True:
                 polygon_center = calc_face_centre(face_no, data)
@@ -1489,26 +1518,25 @@ def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no
                         pygame.draw.line(display, (0, 255, 0), polygon[k], polygon[k+1], 1)
 
         if show_av_norms == True:
-
-            for i in range(0, len(av_normals)):
-
-                av_norm_rotated = rotate_data(av_normals[i], angle)
-
-                if av_norm_rotated[1] >= 0:
-
-                    p1 = data[1][i]
-                    normal = map(lambda a: a * 30 / scale , av_normals[i])
-                    p2 = map(lambda a, b: a + b, p1, normal)
-
-                    p1 = rotate_data(p1, angle)
-                    p1 = screen_point_convertor(p1, scale, min_z)
-
-                    p2 = rotate_data(p2, angle)
-                    p2 = screen_point_convertor(p2, scale, min_z)
-
-                    pygame.draw.line(display, [0, 0, 255], p1, p2, 1)
-
+            draw_av_normals(data, eqns_2, scale, angle, min_z, display)
     return scale, min_z, polygon_list
+
+def draw_av_normals(data, eqns, scale, angle, min_z, display):
+    av_normals = calculate_all_avg_normals(data, eqns)
+    for i in range(0, len(av_normals)):
+        av_norm_rotated = rotate_data(av_normals[i], angle)
+        if av_norm_rotated[1] >= 0:
+            p1 = data[1][i]
+            normal = map(lambda a: a * 30 / scale , av_normals[i])
+            p2 = map(lambda a, b: a + b, p1, normal)
+
+            p1 = rotate_data(p1, angle)
+            p1 = screen_point_convertor(p1, scale, min_z)
+
+            p2 = rotate_data(p2, angle)
+            p2 = screen_point_convertor(p2, scale, min_z)
+
+            pygame.draw.line(display, [255, 255, 255], p1, p2, 1)
 
 
 def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z):
@@ -1517,12 +1545,12 @@ def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z):
     polygon_list = []
     centre_point = rotate_data(centre_point, angle)
     eqns_2 = equations(data)
-    av_normals = []
+    # av_normals = []
     colour_black_grey = (50, 50, 50)
 
-    for i in range(0, len(data[1])):
-        av_normal = avg_normal((i + 1), data, eqns_2)
-        av_normals.append(av_normal)
+    # for i in range(0, len(data[1])):
+    #     av_normal = avg_normal((i + 1), data, eqns_2)
+    #     av_normals.append(av_normal)
 
     for i in range(0, len(data[2])):
         polygon = []
@@ -1550,20 +1578,20 @@ def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z):
 
         polygon_list.append(polygon)
 
-        for i in range(0, len(av_normals)):
-            av_norm_rotated = rotate_data(av_normals[i], angle)
-            if show_av_norms == True and av_norm_rotated[1] > 0:
-                p1 = data[1][i]
-                normal = map(lambda a: a * 30 / scale , av_normals[i])
-                p2 = map(lambda a, b: a + b, p1, normal)
+        # for i in range(0, len(av_normals)):
+        #     av_norm_rotated = rotate_data(av_normals[i], angle)
+        #     if show_av_norms == True and av_norm_rotated[1] > 0:
+        #         p1 = data[1][i]
+        #         normal = map(lambda a: a * 30 / scale , av_normals[i])
+        #         p2 = map(lambda a, b: a + b, p1, normal)
 
-                p1 = rotate_data(p1, angle)
-                p1 = screen_point_convertor(p1, scale, min_z)
+        #         p1 = rotate_data(p1, angle)
+        #         p1 = screen_point_convertor(p1, scale, min_z)
 
-                p2 = rotate_data(p2, angle)
-                p2 = screen_point_convertor(p2, scale, min_z)
+        #         p2 = rotate_data(p2, angle)
+        #         p2 = screen_point_convertor(p2, scale, min_z)
 
-                pygame.draw.line(display, [255, 0, 0], p1, p2, 2)
+        #         pygame.draw.line(display, [255, 0, 0], p1, p2, 2)
 
 
 def cut_lines(points):
@@ -1595,7 +1623,7 @@ def measurement_text(measurement):
     box = map(lambda a, b: a + b, offset, textsurf1)
 
     display.blit(textobj, textsurf)
-    #pygame.draw.polygon(display, (255, 0, 255), box, 0)
+    # pygame.draw.polygon(display, (255, 0, 255), box, 0)
     display.blit(textobj1, textsurf1)
 
 
@@ -1678,19 +1706,6 @@ def quit_screen():
     text_pos_2 = map(lambda a, b: a + b, text_pos, [0, 40])
     text4('Enter Y/N or C for cancel', text_pos_2, [255, 50, 50])
 
-def check_file_exists(file_path, file_number):
-    try:
-        file_name = file_path.format(file_number)
-        print file_name
-        if os.path.exists(file_name):
-            file_number += 1
-            file_name = check_file_exists(file_path, file_number)
-
-    except Exception as error:
-        print error
-
-    return file_name
-
 def quit_game(data, save):
     if save == True:
         output_formatter = OutputFormatter(file_path, "obj")
@@ -1730,6 +1745,7 @@ def create_screen(data_list):
     int_faces_1 = []
     test_data = {}
     cut_plane_2 = []
+    connected_faces = face_connects(data_list)
 
     height = float(Screen_height * .95)
     width = float(Screen_width * .95)
@@ -1749,7 +1765,7 @@ def create_screen(data_list):
         try:
             DISPLAYSURF.fill((0, 0, 0))
 
-            scale, min_z, polygon_list = draw_polygons(data_list_2, DISPLAYSURF, angle, centre_point, scale, min_z, faces_vis, norm_vis, show_edges)
+            scale, min_z, polygon_list = display_model(data_list_2, DISPLAYSURF, angle, centre_point, scale, min_z, faces_vis, norm_vis, show_edges)
 
             clicked = False
 
@@ -1874,7 +1890,7 @@ def create_screen(data_list):
                         else:
                             plane = cut_plane
 
-                        data_list_2 = move_vertices(int_faces_1, plane, measurement_2, data_list_2)
+                        data_list_2 = move_vertices(int_faces_1, plane, measurement_2, data_list_2, connected_faces)
                         check_measurement = True
 
                     elif event.key == K_BACKSPACE and  len(measurement_list) > 1:
@@ -1936,7 +1952,7 @@ def create_screen(data_list):
                         #     print coords
                             # del(coords[-2:])
                         try:
-                            int_faces_1, cut_plane = intersect(coords[-2], coords[-1], data_list_2, [])
+                            int_faces_1, cut_plane = get_intersect_face_plane(coords[-2], coords[-1], data_list_2, [])
 
                         except IndexError as error:
                             print(error)
@@ -1950,11 +1966,11 @@ def create_screen(data_list):
                         p1 = screen_point_convertor(coord1, scale, min_z)
                         p2 = screen_point_convertor(coord2, scale, min_z)
                         points.append([p1, p2])
-                        int_faces_1 = intersect(coord1, coord2, data_list_2, cut_plane_2)[0]
+                        int_faces_1 = get_intersect_face_plane(coord1, coord2, data_list_2, cut_plane_2)[0]
                         plane_aligned = True
 
                     elif align_to_plane == True and len(cut_plane_2) > 0:
-                        int_faces_1 = intersect(coords[-2], coords[-1], data_list_2, cut_plane_2)[0]
+                        int_faces_1 = get_intersect_face_plane(coords[-2], coords[-1], data_list_2, cut_plane_2)[0]
                         plane_aligned = True
 
                     measurement = calc_measurement(int_faces_1)
@@ -1966,14 +1982,14 @@ def create_screen(data_list):
 
             if check_measurement == True:
                 if len(cut_plane_2) == 0:
-                    int_faces_1, cut_plane = intersect(coords[-2], coords[-1], data_list_2, [])
+                    int_faces_1, cut_plane = get_intersect_face_plane(coords[-2], coords[-1], data_list_2, [])
 
                 if align_to_plane == True:
                     cut_plane_2, coord1, coord2 = align_plane(int_faces_1, cut_plane, data_list_2, coords[-2], coords[-1])
                     p1 = screen_point_convertor(coord1, scale, min_z)
                     p2 = screen_point_convertor(coord2, scale, min_z)
                     points.append([p1, p2])
-                    int_faces_1 = intersect(coord1, coord2, data_list_2, cut_plane_2)[0]
+                    int_faces_1 = get_intersect_face_plane(coord1, coord2, data_list_2, cut_plane_2)[0]
 
                 measurement = calc_measurement(int_faces_1)
                 measurement_text(measurement)
@@ -2004,19 +2020,16 @@ def create_screen(data_list):
             print "Oh no!"
 
 
-def init_data():
-    global eqns, face_eqns, attached_f, int_faces, plane_eqn, c1, c2, c3
-    eqns = equations(data_list)
-    face_eqns = calc_planes(data_list)
-    attached_f = face_connects(data_list)
-    c1, c2 = [200.0, 0.0, 1200.0], [-200.0, 0.0, 1200.0]
-    c3 = map(lambda a, b: a + b, c1, [0.0, 100.0, 0.0])
-    #int_faces, plane_eqn = intersect(c1, c2, data_list)
-
 
 def main():
     formatter = InputFormatter(file_name)
     data_list = formatter.data
+    with open("data.txt", "w+") as file:
+        json.dump(data_list, file, indent=4)
+        file.close()
+    with open("eqns.txt", "w+") as file:
+        json.dump(equations(data_list), file, indent=4)
+        file.close()
     create_screen(data_list)
 
 if __name__ == '__main__':
