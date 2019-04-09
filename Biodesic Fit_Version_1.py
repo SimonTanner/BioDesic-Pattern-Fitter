@@ -245,6 +245,17 @@ def vert_connects(data):
 
 
 def face_connects(data):
+    """
+    Builds a list containing sub lists with the 1st item being the vert no
+    and then another sublist of all face nos connected to it.
+    E.g.
+    [
+        [1, [2, ...]],
+        [2, [3, 45, 78, 5]],
+        [3, [...]]
+    ]
+    """
+
     connections = []
 
     for n in range(1, data[0][0][0] + 1):
@@ -253,6 +264,9 @@ def face_connects(data):
         for j in range(0, data[0][0][1]):
             while True:
                 try:
+                    # Hacky means to break the loop by generating an error
+                    # when we can't find the vert no in the face list of verts
+                    count = data[2][j].index(n)
                     while True:
                         try:
                             connects.index(j + 1)
@@ -261,31 +275,29 @@ def face_connects(data):
                             break
                         else:
                             break
-
                 except ValueError:
                     break
                 else:
                     break
-
         if len(connects) > 0:
             connections[n-1].append(connects)
-
     return(connections)
 
 
-def avg_normal(vert, data, equations):
+def avg_normal(vert_no, data, equations):
+    """
+    Calculates the average normal for a vert_no, the data_list and set of equations 
+    """
     av_norm = [0.0, 0.0, 0.0]
     connections = face_connects(data)
-
-    for i in range(0, len(connections[vert - 1][1])):
-        face = connections[vert - 1][1][i] - 1
+    # Loop through all connected face_nos in the list
+    for i in range(0, len(connections[vert_no - 1][1])):
+        face = connections[vert_no - 1][1][i] - 1
+        # Cumulative vector sum of all face's normals
         av_norm = map(lambda a, b: a + b, equations[face][4], av_norm)
-
     av_norm_len = math.sqrt(sum(map(lambda x: x ** 2, av_norm)))
-
     for n in range(0, 3):
         av_norm[n] /= av_norm_len
-
     return(av_norm)
 
 
@@ -783,9 +795,6 @@ def check_equation(point, eqn):
         is_on_line = False
 
     return is_on_line
-
-
-
 
 
 def vector_ang(vec_1, vec_2):
@@ -1443,6 +1452,7 @@ def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no
     for i in range(0, len(data[1])):
         av_normal = avg_normal((i + 1), data, eqns_2)
         av_normals.append(av_normal)
+    assert len(av_normals) == len(data[1]), "No. of normals not equal to no. of vertices"
 
     for i in range(0, len(data[2])):
         polygon = []
@@ -1487,11 +1497,8 @@ def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no
                         pygame.draw.line(display, (0, 255, 0), polygon[k], polygon[k+1], 1)
 
         if show_av_norms == True:
-            print "showing normals"
-            print av_normals
             for i in range(0, len(av_normals)):
                 av_norm_rotated = rotate_data(av_normals[i], angle)
-                # print av_norm_rotated[1]
                 if av_norm_rotated[1] >= 0:
                     p1 = data[1][i]
                     normal = map(lambda a: a * 30 / scale , av_normals[i])
@@ -2001,15 +2008,6 @@ def create_screen(data_list):
             print "Oh no!"
 
 
-def init_data():
-    global eqns, face_eqns, attached_f, int_faces, plane_eqn, c1, c2, c3
-    eqns = equations(data_list)
-    face_eqns = calc_planes(data_list)
-    attached_f = face_connects(data_list)
-    c1, c2 = [200.0, 0.0, 1200.0], [-200.0, 0.0, 1200.0]
-    c3 = map(lambda a, b: a + b, c1, [0.0, 100.0, 0.0])
-    #int_faces, plane_eqn = intersect(c1, c2, data_list)
-
 
 def main():
     formatter = InputFormatter(file_name)
@@ -2023,4 +2021,4 @@ def main():
     create_screen(data_list)
 
 if __name__ == '__main__':
-    main()b
+    main()
