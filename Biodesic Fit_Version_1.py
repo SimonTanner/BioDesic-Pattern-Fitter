@@ -232,7 +232,6 @@ def vert_connects(data):
                                     connects.append(data[2][j][k])
                                 else:
                                     break
-
                 except ValueError:
                     break
                 else:
@@ -255,8 +254,8 @@ def face_connects(data):
         [3, [...]]
     ]
     """
-
     connections = []
+    counts = []
 
     for n in range(1, data[0][0][0] + 1):
         connections.append([n])
@@ -266,7 +265,7 @@ def face_connects(data):
                 try:
                     # Hacky means to break the loop by generating an error
                     # when we can't find the vert no in the face list of verts
-                    count = data[2][j].index(n)
+                    data[2][j].index(n)
                     while True:
                         try:
                             connects.index(j + 1)
@@ -281,18 +280,23 @@ def face_connects(data):
                     break
         if len(connects) > 0:
             connections[n-1].append(connects)
+            counts.append(len(connects))
+    check_connects = len(list(set(counts)))
+    assert check_connects > 1, "WARNING: The length of all connections produced by face_connects fn are the same"
     return(connections)
 
 
-def avg_normal(vert_no, data, equations):
+def avg_normal(vert_no, data, equations, connected_faces=None):
     """
     Calculates the average normal for a vert_no, the data_list and set of equations 
     """
     av_norm = [0.0, 0.0, 0.0]
-    connections = face_connects(data)
+    # Only calculate the connected_faces if required
+    if connected_faces == None:
+        connected_faces = face_connects(data)
     # Loop through all connected face_nos in the list
-    for i in range(0, len(connections[vert_no - 1][1])):
-        face = connections[vert_no - 1][1][i] - 1
+    for i in range(0, len(connected_faces[vert_no - 1][1])):
+        face = connected_faces[vert_no - 1][1][i] - 1
         # Cumulative vector sum of all face's normals
         av_norm = map(lambda a, b: a + b, equations[face][4], av_norm)
     av_norm_len = math.sqrt(sum(map(lambda x: x ** 2, av_norm)))
@@ -300,7 +304,15 @@ def avg_normal(vert_no, data, equations):
         av_norm[n] /= av_norm_len
     return(av_norm)
 
+def calculate_all_avg_normals(data, equations):
+    connected_faces = face_connects(data)
+    av_normals = []
 
+    for i in range(0, len(data[1])):
+        av_normal = avg_normal((i + 1), data, equations, connected_faces)
+        av_normals.append(av_normal)
+    assert len(av_normals) == len(data[1]), "No. of normals not equal to no. of vertices"
+    return av_normals
 
 
 def plane_cutter(coord_1, coord_2, coord_3):
@@ -349,8 +361,6 @@ def inv_eqn(equation):
         const = equation[1]
 
     return [grad, const]
-
-
 
 
 def plane_intersect(plane, eqns):
@@ -638,8 +648,6 @@ def two_plane_intersection(plane_1, plane_2):
     eqn_zy = [o, a]
 
     return([eqn_xy, eqn_xz, eqn_zy])
-
-
 
 
 def attached_faces(equations, data):
@@ -1230,6 +1238,7 @@ def move_vertices(int_faces, plane_eqn, measurement_2, data):
     angles, lines, normals, move_scale, offset, moved = {}, {}, {}, {}, {}, {}
     move_vecs = {'vectors' : {}, 'numbers' : {}}
     test_dist = delta_l / len(int_faces)
+    connected_faces = face_connects(data)
 
     for i in range(0, len(int_faces)):
         vert_1_no = int_faces[i][1][0][0]
@@ -1277,10 +1286,10 @@ def move_vertices(int_faces, plane_eqn, measurement_2, data):
         d_1_2 = point_distance(vert_1, vert_2)
         d_3_4 = point_distance(vert_3, vert_4)
 
-        av_norm_1 = avg_normal((vert_1_no), data, face_eqns)
-        av_norm_2 = avg_normal((vert_2_no), data, face_eqns)
-        av_norm_3 = avg_normal((vert_3_no), data, face_eqns)
-        av_norm_4 = avg_normal((vert_4_no), data, face_eqns)
+        av_norm_1 = avg_normal((vert_1_no), data, face_eqns, connected_faces)
+        av_norm_2 = avg_normal((vert_2_no), data, face_eqns, connected_faces)
+        av_norm_3 = avg_normal((vert_3_no), data, face_eqns, connected_faces)
+        av_norm_4 = avg_normal((vert_4_no), data, face_eqns, connected_faces)
 
         #calculate the planes perpendicular to the lines connecting vertices:
         plane_1 = plane_from_vector(vector_1_2, vert_1)
@@ -1445,14 +1454,7 @@ def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no
     #height = pygame.display.get_height()
     centre_point = rotate_data(centre_point, angle)
     #eqns_2 = correct_normals(data)[-1:][0]
-    eqns_2 = equations(data)
-
-    av_normals = []
-
-    for i in range(0, len(data[1])):
-        av_normal = avg_normal((i + 1), data, eqns_2)
-        av_normals.append(av_normal)
-    assert len(av_normals) == len(data[1]), "No. of normals not equal to no. of vertices"
+    eqns_2 = equations(data)    
 
     for i in range(0, len(data[2])):
         polygon = []
@@ -1473,7 +1475,7 @@ def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no
             polygon_center = rotate_data(polygon_center, angle)
             polygon_list.append([i, polygon, polygon_center])
 
-    polygon_list = sorted(polygon_list, key = sort_polygons)
+    polygon_list = sorted(polygon_list, key=sort_polygons)
 
     for i in range(0, len(polygon_list)):
         polygon = polygon_list[i][1]
@@ -1497,6 +1499,7 @@ def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no
                         pygame.draw.line(display, (0, 255, 0), polygon[k], polygon[k+1], 1)
 
         if show_av_norms == True:
+            av_normals = calculate_all_avg_normals(data, eqns_2)
             for i in range(0, len(av_normals)):
                 av_norm_rotated = rotate_data(av_normals[i], angle)
                 if av_norm_rotated[1] >= 0:
@@ -1521,12 +1524,12 @@ def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z):
     polygon_list = []
     centre_point = rotate_data(centre_point, angle)
     eqns_2 = equations(data)
-    av_normals = []
+    # av_normals = []
     colour_black_grey = (50, 50, 50)
 
-    for i in range(0, len(data[1])):
-        av_normal = avg_normal((i + 1), data, eqns_2)
-        av_normals.append(av_normal)
+    # for i in range(0, len(data[1])):
+    #     av_normal = avg_normal((i + 1), data, eqns_2)
+    #     av_normals.append(av_normal)
 
     for i in range(0, len(data[2])):
         polygon = []
@@ -1554,20 +1557,20 @@ def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z):
 
         polygon_list.append(polygon)
 
-        for i in range(0, len(av_normals)):
-            av_norm_rotated = rotate_data(av_normals[i], angle)
-            if show_av_norms == True and av_norm_rotated[1] > 0:
-                p1 = data[1][i]
-                normal = map(lambda a: a * 30 / scale , av_normals[i])
-                p2 = map(lambda a, b: a + b, p1, normal)
+        # for i in range(0, len(av_normals)):
+        #     av_norm_rotated = rotate_data(av_normals[i], angle)
+        #     if show_av_norms == True and av_norm_rotated[1] > 0:
+        #         p1 = data[1][i]
+        #         normal = map(lambda a: a * 30 / scale , av_normals[i])
+        #         p2 = map(lambda a, b: a + b, p1, normal)
 
-                p1 = rotate_data(p1, angle)
-                p1 = screen_point_convertor(p1, scale, min_z)
+        #         p1 = rotate_data(p1, angle)
+        #         p1 = screen_point_convertor(p1, scale, min_z)
 
-                p2 = rotate_data(p2, angle)
-                p2 = screen_point_convertor(p2, scale, min_z)
+        #         p2 = rotate_data(p2, angle)
+        #         p2 = screen_point_convertor(p2, scale, min_z)
 
-                pygame.draw.line(display, [255, 0, 0], p1, p2, 2)
+        #         pygame.draw.line(display, [255, 0, 0], p1, p2, 2)
 
 
 def cut_lines(points):
