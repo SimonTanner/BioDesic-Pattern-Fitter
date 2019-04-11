@@ -1063,7 +1063,7 @@ def correct_normals(data):
     return(vectors, points, angles, eqns_2)
 
 
-def intersect(coord_1, coord_2, data, aligned_plane):
+def get_intersect_face_plane(coord_1, coord_2, data, aligned_plane):
     global int_faces
     int_faces = []
     eqns = equations(data)
@@ -1081,7 +1081,7 @@ def intersect(coord_1, coord_2, data, aligned_plane):
         int_points = []
 
         for n in range(1, len(eqns[i]) - 1):
-            point_1 = plane_intersect( plane, eqns[i][n][2] )
+            point_1 = plane_intersect(plane, eqns[i][n][2] )
             face = eqns[i][0]
 
             if point_1 != None:
@@ -1236,7 +1236,7 @@ def plane_from_vector(vector, vert_1):
     return plane_eqn
 
 
-def move_vertices(int_faces, plane_eqn, measurement_2, data):
+def move_vertices(int_faces, plane_eqn, measurement_2, data, connected_faces=None):
     face_eqns = equations(data)
     plane_eqn = plane_eqn[-1]
     measurement_1 = calc_measurement(int_faces)
@@ -1247,8 +1247,8 @@ def move_vertices(int_faces, plane_eqn, measurement_2, data):
     angles, lines, normals, move_scale, offset, moved = {}, {}, {}, {}, {}, {}
     move_vecs = {'vectors' : {}, 'numbers' : {}}
     test_dist = delta_l / len(int_faces)
-
-    connected_faces = face_connects(data)
+    if connected_faces is None:
+        connected_faces = face_connects(data)
 
     for i in range(0, len(int_faces)):
         vert_1_no = int_faces[i][1][0][0]
@@ -1474,26 +1474,35 @@ def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no
             vert_no = data[2][i][n]
             points = rotate_data(data[1][(vert_no - 1)], angle)
             points = screen_point_convertor(points, scale, min_z)
-            normals = eqns_2[i][4]
-            normals = rotate_data(normals, angle)
+            normal = eqns_2[i][4]
+            normal = rotate_data(normal, angle)
 
-            if normals[1] > 0.0:
+            if normal[1] > 0.0:
                 polygon.append(points)
 
         if len(polygon) > 2:
             polygon_center = calc_face_centre(face_no, data)
             polygon_center = rotate_data(polygon_center, angle)
-            polygon_list.append([i, polygon, polygon_center])
+            polygon_list.append([i, polygon, polygon_center, normal])
 
     polygon_list = sorted(polygon_list, key=sort_polygons)
 
     for i in range(0, len(polygon_list)):
         polygon = polygon_list[i][1]
         face_no = polygon_list[i][0]
+        normal = polygon_list[i][3]
+        # if face_no == 105:
+        #     print angle
+        #     print normal
 
         if len(polygon) > 0:
+            dot_prod = abs(sum(map(lambda a, b: a * b, normal, [0.0, 1.0, 0.0])))
+            dot_prod = dot_prod ** 2
+            # print dot_prod
             colour = int(255 * i / len(data[2]))
-            pygame.draw.polygon(display, (255, 0 + colour, 255 - colour), polygon, 0)
+            colour_1 = int(200 * dot_prod)
+            colour_2 = int(255 * dot_prod)
+            pygame.draw.polygon(display, (255 , colour_2, 255 - colour_1), polygon, 0)
 
             if show_face_no == True:
                 polygon_center = calc_face_centre(face_no, data)
@@ -1747,6 +1756,7 @@ def create_screen(data_list):
     int_faces_1 = []
     test_data = {}
     cut_plane_2 = []
+    connected_faces = face_connects(data_list)
 
     height = float(Screen_height * .95)
     width = float(Screen_width * .95)
@@ -1891,7 +1901,7 @@ def create_screen(data_list):
                         else:
                             plane = cut_plane
 
-                        data_list_2 = move_vertices(int_faces_1, plane, measurement_2, data_list_2)
+                        data_list_2 = move_vertices(int_faces_1, plane, measurement_2, data_list_2, connected_faces)
                         check_measurement = True
 
                     elif event.key == K_BACKSPACE and  len(measurement_list) > 1:
@@ -1953,7 +1963,7 @@ def create_screen(data_list):
                         #     print coords
                             # del(coords[-2:])
                         try:
-                            int_faces_1, cut_plane = intersect(coords[-2], coords[-1], data_list_2, [])
+                            int_faces_1, cut_plane = get_intersect_face_plane(coords[-2], coords[-1], data_list_2, [])
 
                         except IndexError as error:
                             print(error)
@@ -1967,11 +1977,11 @@ def create_screen(data_list):
                         p1 = screen_point_convertor(coord1, scale, min_z)
                         p2 = screen_point_convertor(coord2, scale, min_z)
                         points.append([p1, p2])
-                        int_faces_1 = intersect(coord1, coord2, data_list_2, cut_plane_2)[0]
+                        int_faces_1 = get_intersect_face_plane(coord1, coord2, data_list_2, cut_plane_2)[0]
                         plane_aligned = True
 
                     elif align_to_plane == True and len(cut_plane_2) > 0:
-                        int_faces_1 = intersect(coords[-2], coords[-1], data_list_2, cut_plane_2)[0]
+                        int_faces_1 = get_intersect_face_plane(coords[-2], coords[-1], data_list_2, cut_plane_2)[0]
                         plane_aligned = True
 
                     measurement = calc_measurement(int_faces_1)
@@ -1983,14 +1993,14 @@ def create_screen(data_list):
 
             if check_measurement == True:
                 if len(cut_plane_2) == 0:
-                    int_faces_1, cut_plane = intersect(coords[-2], coords[-1], data_list_2, [])
+                    int_faces_1, cut_plane = get_intersect_face_plane(coords[-2], coords[-1], data_list_2, [])
 
                 if align_to_plane == True:
                     cut_plane_2, coord1, coord2 = align_plane(int_faces_1, cut_plane, data_list_2, coords[-2], coords[-1])
                     p1 = screen_point_convertor(coord1, scale, min_z)
                     p2 = screen_point_convertor(coord2, scale, min_z)
                     points.append([p1, p2])
-                    int_faces_1 = intersect(coord1, coord2, data_list_2, cut_plane_2)[0]
+                    int_faces_1 = get_intersect_face_plane(coord1, coord2, data_list_2, cut_plane_2)[0]
 
                 measurement = calc_measurement(int_faces_1)
                 measurement_text(measurement)
