@@ -1623,7 +1623,7 @@ def measurement_text(measurement):
     box = map(lambda a, b: a + b, offset, textsurf1)
 
     display.blit(textobj, textsurf)
-    pygame.draw.polygon(display, (255, 0, 255), box, 0)
+    # pygame.draw.polygon(display, (255, 0, 255), box, 0)
     display.blit(textobj1, textsurf1)
 
 
