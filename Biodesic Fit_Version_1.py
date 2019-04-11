@@ -1457,7 +1457,7 @@ def sort_polygons(polygons):
     return polygons[2][1]
 
 
-def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no, show_av_norms, show_edges):
+def display_model(data, display, angle, centre_point, scale, min_z, show_face_no, show_av_norms, show_edges):
     #Draws the polygons of each face as different colours
 
     polygon_list = []
@@ -1518,23 +1518,25 @@ def draw_polygons(data, display, angle, centre_point, scale, min_z, show_face_no
                         pygame.draw.line(display, (0, 255, 0), polygon[k], polygon[k+1], 1)
 
         if show_av_norms == True:
-            av_normals = calculate_all_avg_normals(data, eqns_2)
-            for i in range(0, len(av_normals)):
-                av_norm_rotated = rotate_data(av_normals[i], angle)
-                if av_norm_rotated[1] >= 0:
-                    p1 = data[1][i]
-                    normal = map(lambda a: a * 30 / scale , av_normals[i])
-                    p2 = map(lambda a, b: a + b, p1, normal)
-
-                    p1 = rotate_data(p1, angle)
-                    p1 = screen_point_convertor(p1, scale, min_z)
-
-                    p2 = rotate_data(p2, angle)
-                    p2 = screen_point_convertor(p2, scale, min_z)
-
-                    pygame.draw.line(display, [255, 255, 255], p1, p2, 1)
-
+            draw_av_normals(data, eqns_2, scale, angle, min_z, display)
     return scale, min_z, polygon_list
+
+def draw_av_normals(data, eqns, scale, angle, min_z, display):
+    av_normals = calculate_all_avg_normals(data, eqns)
+    for i in range(0, len(av_normals)):
+        av_norm_rotated = rotate_data(av_normals[i], angle)
+        if av_norm_rotated[1] >= 0:
+            p1 = data[1][i]
+            normal = map(lambda a: a * 30 / scale , av_normals[i])
+            p2 = map(lambda a, b: a + b, p1, normal)
+
+            p1 = rotate_data(p1, angle)
+            p1 = screen_point_convertor(p1, scale, min_z)
+
+            p2 = rotate_data(p2, angle)
+            p2 = screen_point_convertor(p2, scale, min_z)
+
+            pygame.draw.line(display, [255, 255, 255], p1, p2, 1)
 
 
 def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z):
@@ -1621,7 +1623,7 @@ def measurement_text(measurement):
     box = map(lambda a, b: a + b, offset, textsurf1)
 
     display.blit(textobj, textsurf)
-    #pygame.draw.polygon(display, (255, 0, 255), box, 0)
+    pygame.draw.polygon(display, (255, 0, 255), box, 0)
     display.blit(textobj1, textsurf1)
 
 
@@ -1704,19 +1706,6 @@ def quit_screen():
     text_pos_2 = map(lambda a, b: a + b, text_pos, [0, 40])
     text4('Enter Y/N or C for cancel', text_pos_2, [255, 50, 50])
 
-def check_file_exists(file_path, file_number):
-    try:
-        file_name = file_path.format(file_number)
-        print file_name
-        if os.path.exists(file_name):
-            file_number += 1
-            file_name = check_file_exists(file_path, file_number)
-
-    except Exception as error:
-        print error
-
-    return file_name
-
 def quit_game(data, save):
     if save == True:
         output_formatter = OutputFormatter(file_path, "obj")
@@ -1776,7 +1765,7 @@ def create_screen(data_list):
         try:
             DISPLAYSURF.fill((0, 0, 0))
 
-            scale, min_z, polygon_list = draw_polygons(data_list_2, DISPLAYSURF, angle, centre_point, scale, min_z, faces_vis, norm_vis, show_edges)
+            scale, min_z, polygon_list = display_model(data_list_2, DISPLAYSURF, angle, centre_point, scale, min_z, faces_vis, norm_vis, show_edges)
 
             clicked = False
 
