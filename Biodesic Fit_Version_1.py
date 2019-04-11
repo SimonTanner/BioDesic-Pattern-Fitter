@@ -334,7 +334,9 @@ def plane_cutter(coord_1, coord_2, coord_3):
 
 
 def vector_in_plane(plane, vector):
-    #projects a vector onto a given plane
+    """
+    projects a vector onto a given plane
+    """
     normal = plane[:3]
     normal_mod_sqrd = sum(map(lambda a: a**2, normal))
 
@@ -364,7 +366,16 @@ def inv_eqn(equation):
 
 
 def plane_intersect(plane, eqns):
-    #Calculates the point of intersection between a plane and a line and returns the coords of this point
+    """
+    Calculates the point of intersection between a plane and a line and returns the coords
+    of this point.
+    eqns in form of:
+        dy/dx = eqns[0][0]
+        dz/dx = eqns[1][0]
+        dy/dz = eqns[2][0]
+
+    constants for each = eqns[n][1]
+    """
     Error_val = 0.01
     # dy/dx = eqns[0][0]
     # dz/dx = eqns[1][0]
@@ -540,6 +551,9 @@ def plane_intersect(plane, eqns):
 
 
 def point_distance(vert_1, vert_2):
+    """
+    Scalar distance between two vectors
+    """
     distance = 0.0
 
     for n in range(0, len(vert_1)):
@@ -550,13 +564,13 @@ def point_distance(vert_1, vert_2):
     return(distance)
 
 
-def face_find(data, vert_1_no, vert_2_no, i):
+def face_find(data, vert_1_no, vert_2_no, face_no):
 
     joined = []
     joined_faces = []
 
     for n in range(0, len(data[2])):
-        if i != n:
+        if face_no != n:
             while True:
                 try:
                     data[2][n].index(vert_1_no + 1)
@@ -591,26 +605,22 @@ def face_find(data, vert_1_no, vert_2_no, i):
 
 
 def find_vert(eqns, vert_no):
+    # Not currently being used
+    """
+    Finds the index of the equation relating to a particular vertex
+    """
     for y in range(0, len(eqns)):
-        while True:
-            try:
-                # x = eqns[y].index(vert_no)
-                location = y
-
-            except AttributeError:
-                break
-
-            except ValueError:
-                break
-
-            else:
-                break
-
-    return location
+        if vert_no in eqns[y]:
+            return y
+        else:
+            return None
 
 
 def two_plane_intersection(plane_1, plane_2):
-    # Function to calculate the line of intersection between two planes in the form mx + ny +oz + D = 0
+    """
+    Function to calculate the line of intersection between two planes in the form:
+        mx + ny +oz + D = 0
+    """
 
     x1, y1, z1, D1 = map(lambda a: float(a),[plane_1[0], plane_1[1], plane_1[2], plane_1[3]])
     x2, y2, z2, D2 = map(lambda a: float(a),[plane_2[0], plane_2[1], plane_2[2], plane_2[3]])
@@ -729,8 +739,9 @@ def index_verts(equations, face, vert):
 
 
 def line_intersection(line_1, line_2):
-    #function to calculate the point of intersect between two given lines and return the coords
-
+    """
+    function to calculate the point of intersect between two given lines and return the coords
+    """
     m1, c1 = line_1[0]
     m2, c2 = line_2[0]
     n1, b1 = line_1[1]
@@ -739,7 +750,6 @@ def line_intersection(line_1, line_2):
     o2, a2 = line_2[2]
 
     if m1 and m2 != None:
-
         x = (c2 - c1) / (m1 - m2)
         y = m1 * x + c1
 
@@ -747,11 +757,9 @@ def line_intersection(line_1, line_2):
         if m1 == None and m2 != None:
             x = c1
             y = m2 * x + c2
-
         elif m2 == None and m1 != None:
             x = c2
             y = m1 * x + c1
-
 
     if o1!= None and o2 != None:
         z = (a2 - a1) / (o1 - o2)
@@ -760,7 +768,6 @@ def line_intersection(line_1, line_2):
         if o1 == None:
             z = a1
             y = o2 * z + a2
-
         elif o2 == None:
             z = a2
             y = o1 * z + a1
@@ -806,8 +813,10 @@ def check_equation(point, eqn):
 
 
 def vector_ang(vec_1, vec_2):
-    # Calculate the angle between two vectors
-    # While loop added due to value error generated in two vectors were the same but float nums
+    """
+    Calculate the angle between two vectors
+    """
+    # While loop added due to value error generated if two vectors were the same but float nums
     while True:
         try:
             dot_prod = sum(map(lambda a, b: a * b, vec_1, vec_2))
@@ -1238,6 +1247,7 @@ def move_vertices(int_faces, plane_eqn, measurement_2, data):
     angles, lines, normals, move_scale, offset, moved = {}, {}, {}, {}, {}, {}
     move_vecs = {'vectors' : {}, 'numbers' : {}}
     test_dist = delta_l / len(int_faces)
+
     connected_faces = face_connects(data)
 
     for i in range(0, len(int_faces)):
