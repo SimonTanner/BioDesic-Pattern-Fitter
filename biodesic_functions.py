@@ -1034,7 +1034,7 @@ def correct_normals(data):
 
 
 def get_intersect_face_plane(coord_1, coord_2, data, aligned_plane):
-    # global int_faces
+
     int_faces = []
     eqns = equations(data)
 
@@ -1087,12 +1087,11 @@ def get_intersect_face_plane(coord_1, coord_2, data, aligned_plane):
         if len(int_points) > 1:
             int_faces.append([i + 1, int_points])
 
-    return int_faces, plane#, intersecting
+    return int_faces, plane #, intersecting
 
 
 
 def align_plane(int_faces, plane, data, coord1, coord2):
-    global verts_above, verts_below, centre_above, centre_below, normal_to_plane, centre_p, norm_vec_aligned
     try:
         verts_above = []
         verts_below = []
@@ -1104,7 +1103,9 @@ def align_plane(int_faces, plane, data, coord1, coord2):
         for i in range(0, len(int_faces)):
             for n in range(0, len(int_faces[i][1])):
                 for k in range(0, len(int_faces[i][1][n]) - 1):
+                    # get the index of the vertex
                     vert_no = int_faces[i][1][n][k] - 1
+                    # get the vertex position vector
                     vert = data[1][vert_no]
                     cut_p = int_faces[i][1][n][-1]
                     vec = map(lambda a, b: a - b, vert, cut_p)
@@ -1115,9 +1116,11 @@ def align_plane(int_faces, plane, data, coord1, coord2):
 
                     elif dot_prod < 0:
                         verts_below.append(vert)
-
+        # Calculate the average centre point of the vertices above & below
         centre_above = calc_centre(verts_above)
         centre_below = calc_centre(verts_below)
+
+        # Calculate the line equation connecting the two points
         line_eqn = calc_line_eqn_2(centre_above, centre_below)
         centre_p = plane_intersect(plane, line_eqn)
         norm_vec_aligned = map(lambda a, b: a - b, centre_above, centre_p)
@@ -1128,10 +1131,18 @@ def align_plane(int_faces, plane, data, coord1, coord2):
 
         c1 = plane_intersect(plane, line_eqn_c1)
         c2 = plane_intersect(plane, line_eqn_c2)
+        c1[1] = 0.0
+        c2[1] = 0.0
     
     except Exception as error:
         if error:
             print error
+    print "-------------------------------------"
+    print "calculating aligned plane"
+    print plane
+    print c1
+    print c2
+    print "-------------------------------------"
 
     return plane, c1, c2
 
@@ -1349,8 +1360,10 @@ def rotate_data(coord, angle_z):
     return [x2, y2, z2]
 
 
-def delta_z(data): 
-    #Calculates the distance between heighest & lowest vertex
+def delta_z(data):
+    """
+    Calculates the distance between heighest & lowest vertex from the model data
+    """
     delta_z_list = []
 
     for i in range(len(data[1])):
