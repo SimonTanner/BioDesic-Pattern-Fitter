@@ -2,7 +2,8 @@ import os
 
 
 class OutputFormatter():
-    """Must be initialised with a file path to where the file should be saved and the
+    """
+    Must be initialised with a file path to where the file should be saved and the
     desired ouput format e.g .txt
     """
     def __init__(self, file_path, output_format="txt"):
