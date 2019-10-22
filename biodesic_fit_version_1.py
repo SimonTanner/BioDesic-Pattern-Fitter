@@ -414,13 +414,16 @@ def create_screen(data_list, screen_height, screen_width):
     seperate_objects_mode = False
     seperated_faces = SeperatedFaces(data_list_2)
 
-    scale, min_z = calculate_display_sizes(screen_height, screen_width, data_list_2)
+    initial_scale, min_z = calculate_display_sizes(screen_height, screen_width, data_list_2)
+    scale = initial_scale
 
     # Vars for handling mouse up & down events and moving objects on screen by dragging
     mouse_dwn_start = None
     max_mouse_dwn = 0.3
     mouse_dwn_delta = 0
     mouse_rel_pos = [0, 0]
+
+    flip_bool = {True: False, False: True}
 
     while True:
         try:
@@ -471,7 +474,6 @@ def create_screen(data_list, screen_height, screen_width):
                 text1(coords[-2], [0, 40])
 
             for event in pygame.event.get():
-                # print event
                 if event.type == VIDEORESIZE:
                     screen_height, screen_width = event.h, event.w
                     scale, min_z = calculate_display_sizes(screen_height, screen_width, data_list_2)
@@ -490,11 +492,17 @@ def create_screen(data_list, screen_height, screen_width):
                     elif event.key == K_n and quit_scr == True:
                         quit_game(data_list_2, False)
 
-                    elif event.key == K_c and quit_scr == True and not CONTROL:
-                        quit_scr = False
-
-                    elif event.key == K_c and CONTROL == True:
-                        quit_scr = True
+                    elif event.key == K_c:
+                        if quit_scr and not CONTROL:
+                            quit_scr = False
+                        elif CONTROL:
+                            quit_scr = True
+                        else:
+                            points = []
+                            coords = []
+                            cut_plane = []
+                            cut_plane_2 = []
+                            int_faces = []
 
                     elif event.key == K_LEFT:
                         angle += delta_ang_pheta
@@ -509,25 +517,25 @@ def create_screen(data_list, screen_height, screen_width):
                         angle = 180
 
                     elif event.key == K_r:
-                        angle = 90
-
+                        if CONTROL:
+                            scale = initial_scale
+                        else:
+                            angle = 90
+                        
                     elif event.key == K_l:
                         angle = -90
+                    
+                    elif event.key == K_MINUS:
+                        scale *= 0.9
+
+                    elif event.key == K_EQUALS:
+                        scale *= 1.1
 
                     elif event.key == K_e:
                         if CONTROL == False:
-                            if show_edges == False:
-                                show_edges = True
-
-                            elif show_edges == True:
-                                show_edges = False
-
+                            show_edges = flip_bool[show_edges]
                         else:
-                            if show_unedited == False:
-                                show_unedited = True
-
-                            elif show_unedited == True:
-                                show_unedited = False
+                            show_unedited = flip_bool[show_unedited]
 
                     elif event.key == K_s:
                         # Need to add logic for seperating faces to different objects
@@ -538,34 +546,18 @@ def create_screen(data_list, screen_height, screen_width):
                             seperate_objects_mode = True
 
                     elif event.key == K_v:
-                        if faces_vis == False:
-                            faces_vis = True
-
-                        elif faces_vis == True:
-                            faces_vis = False
+                        faces_vis = flip_bool[faces_vis]
 
                     elif event.key == K_n:
-                        if norm_vis == False:
-                            norm_vis = True
-
-                        elif norm_vis == True:
-                            norm_vis = False
+                        norm_vis = flip_bool[norm_vis]
 
                     elif event.key == K_DELETE:
                         data_list_2 = copy.deepcopy(data_list)
-
-                    elif event.key == K_c:
-                        points = []
-                        coords = []
-                        cut_plane = []
-                        cut_plane_2 = []
-                        int_faces = []
 
                     elif event.key == K_a:
                         if len(cut_plane) > 0 and align_to_plane == False:
                             # We can only align a plane if we have one already
                             align_to_plane = True
-
                         else:
                             align_to_plane = False
                             clicked = True
@@ -586,7 +578,6 @@ def create_screen(data_list, screen_height, screen_width):
 
                         if align_to_plane == True & len(cut_plane_2) > 0:
                             plane = cut_plane_2
-
                         else:
                             plane = cut_plane
 
@@ -605,27 +596,21 @@ def create_screen(data_list, screen_height, screen_width):
 
                 elif event.type == MOUSEMOTION:
                     get_rel = pygame.mouse.get_rel()
+                    # If the left mouse is down and the mouse moves get the relative motion for panning the
+                    # model
                     if mouse_dwn_start != None:
-                        
-                        print get_rel
                         mouse_rel_pos = map(lambda x, y: x + y, get_rel, mouse_rel_pos)
-                        
-                        print mouse_rel_pos
-
 
                 elif event.type == MOUSEBUTTONDOWN:
-                    # print pygame.mouse.get_pressed()
-                    # mouse_rel_pos = pygame.mouse.get_pos()
+                    # Start the timer to check how long the left mouse button is pressed
                     if pygame.mouse.get_pressed()[0]:
                         mouse_dwn_start = time.time()
 
                 elif event.type == MOUSEBUTTONUP:
+                    # Calculate how long the left button was pressed
                     if mouse_dwn_start != None:
                         mouse_dwn_delta = time.time() - mouse_dwn_start
-                    # print mouse_dwn_delta
-                    # print pygame.mouse.get_pressed()
-                    
-                    # if pygame.mouse.get_pressed()[0] and (mouse_dwn_start == None or mouse_dwn_delta < max_mouse_down):
+                    # If time pressed less than max time assume it's a click
                     if mouse_dwn_start == None or mouse_dwn_delta < max_mouse_dwn:
                         
                         point = list(pygame.mouse.get_pos())
@@ -709,17 +694,6 @@ def create_screen(data_list, screen_height, screen_width):
                     for i in range(0, len(points) - 1):
                         pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i][0], points[i][1])
 
-            # if check_measurement == True:
-            #     if len(cut_plane_2) == 0:
-            #         int_faces_1, cut_plane = get_intersect_face_plane(coords[-2], coords[-1], data_list_2, [])
-
-            #     if align_to_plane == True:
-            #         cut_plane_2, coord1, coord2 = align_plane(int_faces_1, cut_plane, data_list_2, coords[-2], coords[-1])
-            #         p1 = screen_point_convertor(coord1, scale, min_z, screen_height, screen_width)
-            #         p2 = screen_point_convertor(coord2, scale, min_z, screen_height, screen_width)
-            #         points.append([p1, p2])
-            #         int_faces_1 = get_intersect_face_plane(coord1, coord2, data_list_2, cut_plane_2)[0]
-
                 measurement = calc_measurement(int_faces_1)
                 measurement_text(measurement)
 
@@ -751,16 +725,18 @@ def create_screen(data_list, screen_height, screen_width):
 
 
 
-def main():
+def main(debug):
     formatter = InputFormatter(file_name)
     data_list = formatter.data
-    # with open("data.txt", "w+") as file:
-    #     json.dump(data_list, file, indent=4)
-    #     file.close()
-    # with open("eqns.txt", "w+") as file:
-    #     json.dump(equations(data_list), file, indent=4)
-    #     file.close()
+    if debug:
+        # Output data for debugging
+        with open("data.txt", "w+") as file:
+            json.dump(data_list, file, indent=4)
+            file.close()
+        with open("eqns.txt", "w+") as file:
+            json.dump(equations(data_list), file, indent=4)
+            file.close()
     create_screen(data_list, Screen_height, Screen_width)
 
 if __name__ == '__main__':
-    main()
+    main(False)
