@@ -5,6 +5,7 @@ import traceback
 import time, datetime
 
 from biodesic_functions import *
+from biodesic_fit_display_text import *
 from freecad_formatter import freecad_format
 from input_file_formatter import InputFormatter
 from output_file_formatter import OutputFormatter
@@ -12,6 +13,8 @@ from output_file_formatter import OutputFormatter
 # file_name = "test_data/Skinny-v5.txt"
 
 file_name = "test_data/Skinny-v5.obj"
+
+# file_name = "test_data/bio-hoody-02-v3 _Fitted.txt"
 
 file_path = os.path.join(os.getcwd(), file_name)
 
@@ -24,25 +27,26 @@ Screen_width = 1400
 Screen_height = 900
 
 
-def screen_point_convertor(point, scale, min_z, screen_height, screen_width, rel_pos=(0, 0)):
+def screen_point_convertor(point, scale, mid_z, screen_height, screen_width, rel_pos=(0, 0)):
     """
     Converts the data coordinates to (x, y, z) to fit on screen (x, y)
     """
     point = map(float, point)
     point[0] = int(point[0] * scale + screen_width / 2) + rel_pos[0]
-    point[2] = int( screen_height / 2 - (point[2] - min_z) * scale ) + rel_pos[1]
+    point[2] = int( screen_height / 2 - (point[2] - mid_z) * scale ) + rel_pos[1]
     del(point[1])
 
     return point
 
 
-def data_point_screen_convertor(point, scale, min_z, screen_height, screen_width, rel_pos=(0, 0)):
+def data_point_screen_convertor(point, scale, mid_z, screen_height, screen_width, rel_pos=(0, 0)):
     """
     Converts (x, y) screen coordinates back to real (x, y, z) coords
     """
     point = map(float, point)
-    point[0] = (point[0] - screen_width / 2  - rel_pos[0]) / scale
-    point.append(min_z + (screen_height / 2 - point[1] - rel_pos[1]) / scale)
+    point[0] = (point[0] - screen_width / 2  + rel_pos[0]) / scale
+    z_coord = mid_z + (screen_height / 2 + rel_pos[1] - point[1]) / scale
+    point.append(z_coord)
     point[1] = 0.0
 
     return point
@@ -52,7 +56,7 @@ def sort_polygons(polygons):
     return polygons[2][1]
 
 
-def display_model(data, display, angle, centre_point, scale, min_z, show_face_no, show_av_norms,
+def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no, show_av_norms,
                   show_edges, screen_height, screen_width, avg_normals=None, rel_pos=(0, 0)):
     """
     Draws the polygons of each face as different colours
@@ -71,7 +75,7 @@ def display_model(data, display, angle, centre_point, scale, min_z, show_face_no
         for n in range(0, len(data[2][i])):
             vert_no = data[2][i][n]
             points = rotate_data(data[1][(vert_no - 1)], angle)
-            points = screen_point_convertor(points, scale, min_z, screen_height, screen_width, rel_pos)
+            points = screen_point_convertor(points, scale, mid_z, screen_height, screen_width, rel_pos)
             normal = eqns_2[i][4]
             normal = rotate_data(normal, angle)
 
@@ -107,7 +111,7 @@ def display_model(data, display, angle, centre_point, scale, min_z, show_face_no
             if show_face_no == True: 
                 polygon_center = calc_face_centre(face_no, data)
                 polygon_center = rotate_data(polygon_center, angle)
-                polygon_center = screen_point_convertor(polygon_center, scale, min_z, screen_height, screen_width, rel_pos)
+                polygon_center = screen_point_convertor(polygon_center, scale, mid_z, screen_height, screen_width, rel_pos)
                 text2((face_no+1), polygon_center, (255, colour, 255 - colour))
 
             if show_edges == True:
@@ -118,14 +122,13 @@ def display_model(data, display, angle, centre_point, scale, min_z, show_face_no
                         pygame.draw.line(display, (0, 255, 0), polygon[k], polygon[k+1], 1)
 
         if show_av_norms == True:
-            avg_normals = draw_avg_normals(data, eqns_2, scale, angle, min_z, display, screen_height, screen_width, avg_normals, rel_pos)
+            avg_normals = draw_avg_normals(data, eqns_2, scale, angle, mid_z, display, screen_height, screen_width, avg_normals, rel_pos)
         # if show_face_no is True:
         #     display.blit(new_display, (0, 0))
-    return scale, min_z, polygon_list, avg_normals
+    return scale, mid_z, polygon_list, avg_normals
 
-def draw_avg_normals(data, eqns, scale, angle, min_z, display, screen_height, screen_width, avg_normals=None, rel_pos=(0, 0)):
+def draw_avg_normals(data, eqns, scale, angle, mid_z, display, screen_height, screen_width, avg_normals=None, rel_pos=(0, 0)):
     if avg_normals == None:
-        print "MEH"
         avg_normals = calculate_all_avg_normals(data, eqns)
     for i in range(0, len(avg_normals)):
         av_norm_rotated = rotate_data(avg_normals[i], angle)
@@ -135,27 +138,23 @@ def draw_avg_normals(data, eqns, scale, angle, min_z, display, screen_height, sc
             p2 = map(lambda a, b: a + b, p1, normal)
 
             p1 = rotate_data(p1, angle)
-            p1 = screen_point_convertor(p1, scale, min_z, screen_height, screen_width, rel_pos)
+            p1 = screen_point_convertor(p1, scale, mid_z, screen_height, screen_width, rel_pos)
 
             p2 = rotate_data(p2, angle)
-            p2 = screen_point_convertor(p2, scale, min_z, screen_height, screen_width, rel_pos)
+            p2 = screen_point_convertor(p2, scale, mid_z, screen_height, screen_width, rel_pos)
 
             pygame.draw.line(display, [255, 255, 255], p1, p2, 1)
+
     return avg_normals
 
 
-def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z, screen_height, screen_width, rel_pos=(0, 0)):
+def draw_edges(data, display, angle, centre_point, show_av_norms, scale, mid_z, screen_height, screen_width, rel_pos=(0, 0)):
     #Draws the polygons of each face as different colours
 
     polygon_list = []
     centre_point = rotate_data(centre_point, angle)
     eqns_2 = equations(data)
-    # av_normals = []
     colour_black_grey = (50, 50, 50)
-
-    # for i in range(0, len(data[1])):
-    #     av_normal = avg_normal((i + 1), data, eqns_2)
-    #     av_normals.append(av_normal)
 
     for i in range(0, len(data[2])):
         polygon = []
@@ -163,7 +162,7 @@ def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z, 
 
             vert_no = data[2][i][n]
             points = rotate_data(data[1][(vert_no - 1)], angle)
-            points = screen_point_convertor(points, scale, min_z, screen_height, screen_width, rel_pos)
+            points = screen_point_convertor(points, scale, mid_z, screen_height, screen_width, rel_pos)
             normals = eqns_2[i][4]
             normals = rotate_data(normals, angle)
 
@@ -180,23 +179,7 @@ def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z, 
                 else:
                     pygame.draw.line(display, colour_black_grey, polygon[k], polygon[k+1], 1)
 
-
         polygon_list.append(polygon)
-
-        # for i in range(0, len(av_normals)):
-        #     av_norm_rotated = rotate_data(av_normals[i], angle)
-        #     if show_av_norms == True and av_norm_rotated[1] > 0:
-        #         p1 = data[1][i]
-        #         normal = map(lambda a: a * 30 / scale , av_normals[i])
-        #         p2 = map(lambda a, b: a + b, p1, normal)
-
-        #         p1 = rotate_data(p1, angle)
-        #         p1 = screen_point_convertor(p1, scale, min_z, screen_height, screen_width)
-
-        #         p2 = rotate_data(p2, angle)
-        #         p2 = screen_point_convertor(p2, scale, min_z, screen_height, screen_width)
-
-        #         pygame.draw.line(display, [255, 0, 0], p1, p2, 2)
 
 
 def cut_lines(points):
@@ -208,110 +191,6 @@ def cut_lines(points):
         pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i], points[i + 1])
 
 
-def measurement_text(measurement):
-    display = pygame.display.get_surface()
-    screen_height = display.get_height()
-    screen_width = display.get_width()
-
-    measurement = int(measurement)
-    measurement = str(measurement)
-
-    fontobj = pygame.font.Font('freesansbold.ttf', 14)
-    textobj = fontobj.render('Measurement: ' + measurement + ' mm', True, [100, 100, 255], [0, 0, 0])
-    textsurf = textobj.get_rect()
-    textsurf.topleft = ( (20), (20) )
-
-    fontobj1 = pygame.font.Font('freesansbold.ttf', 14)
-    textobj1 = fontobj1.render('Change Measurement', True, [100, 100, 255], [50, 50, 50])
-    textsurf1 = textobj1.get_rect()
-    textsurf1.topright = ( (screen_width - 20), (20) )
-
-    offset = [-5, -5, 5, 5]
-    box = map(lambda a, b: a + b, offset, textsurf1)
-    pygame.draw.rect(display, (255, 0, 255), box, 0)
-    display.blit(textobj, textsurf)
-    display.blit(textobj1, textsurf1)
-
-
-def convert_list(list_1):
-    # Converts the input from the UI into an integer
-    number = str(list_1).translate(None, ',')
-    number = number.translate(None, ' ')
-    number = number.translate(None, '[')
-    number = number.translate(None, ']')
-    number = int(number)
-
-    return number
-
-
-def measurement_text2(measurement, screen_coord):
-    display = pygame.display.get_surface()
-
-    measurement = str(measurement)
-
-    fontobj = pygame.font.Font('freesansbold.ttf', 14)
-    textobj = fontobj.render('New Measurement: ' + measurement + ' mm', True, [100, 100, 255], [0, 0, 0])
-    textsurf = textobj.get_rect()
-    textsurf.topleft = ( (20 + screen_coord[0]), (20 + screen_coord[1]) )
-
-    display.blit(textobj, textsurf)
-
-
-def text1(text, screen_coord):
-    display = pygame.display.get_surface()
-    text = str(map(int, text))
-
-    fontobj = pygame.font.Font('freesansbold.ttf', 12)
-    textobj = fontobj.render(text + ' mm', True, [100, 100, 255], [0, 0, 0])
-    textsurf = textobj.get_rect()
-    textsurf.topleft = ( (20 + screen_coord[0]), (20 + screen_coord[1]) )
-
-    display.blit(textobj, textsurf)
-
-
-def text2(text, screen_coord, colour, display=None):
-    if display is None:
-        display = pygame.display.get_surface()
-    text = str(text)
-    colour = None
-    fontobj = pygame.font.Font('freesansbold.ttf', 12)
-    textobj = fontobj.render(text, True, [0, 0, 0])
-    textsurf = textobj.get_rect()
-    textsurf.center = ( (screen_coord[0]), (screen_coord[1]) )
-
-    display.blit(textobj, textsurf)
-
-
-def text3(text, screen_coord, colour):
-    display = pygame.display.get_surface()
-    text = str(text)
-
-    fontobj = pygame.font.Font('freesansbold.ttf', 12)
-    textobj = fontobj.render(text, True, colour, [0, 0, 0])
-    textsurf = textobj.get_rect()
-    textsurf.topleft = ( (20 + screen_coord[0]), (20 + screen_coord[1]) )
-
-    display.blit(textobj, textsurf)
-
-
-def text4(text, screen_coord, colour):
-    display = pygame.display.get_surface()
-
-    if type(text) != 'str':
-        text = str(text)
-    fontobj = pygame.font.Font('freesansbold.ttf', 24)
-    textobj = fontobj.render(text, True, colour, [0, 0, 0])
-    textsurf = textobj.get_rect()
-    textsurf.center = ( screen_coord[0], screen_coord[1] )
-
-    display.blit(textobj, textsurf)
-
-
-def quit_screen(screen_height, screen_width):
-    text_pos = [int(screen_width/2), int(screen_height/2)]
-    text4('Would you like to save the new model?', text_pos, [255, 50, 50])
-    text_pos_2 = map(lambda a, b: a + b, text_pos, [0, 40])
-    text4('Enter Y/N or C for cancel', text_pos_2, [255, 50, 50])
 
 def quit_game(data, save):
     if save == True:
@@ -323,21 +202,46 @@ def quit_game(data, save):
 
 def calculate_display_sizes(screen_height, screen_width, data):
     """
-    Calculates the scale that the model should 
+    Calculates the scale that the model should be
     """
     height = float(screen_height * .95)
     width = float(screen_width * .95)
 
-    scale_z = height / delta_z(data)[0]
-    scale_x = width / delta_x(data)[0]
+    delta_mid_z = calc_delta_z(data)
+    delta_mid_x = calc_delta_x(data)
+
+    scale_z = height / delta_mid_z[0]
+    scale_x = width / delta_mid_x[0]
 
     if scale_z < scale_x:
         scale = scale_z
     else:
         scale = scale_x
 
-    min_z = sum(delta_z(data)) / 2
-    return scale, min_z
+    mid_z = delta_mid_z[1]
+    return scale, mid_z
+
+def move_screen_points(screen_points, mouse_rel_motion):
+    """
+    Moves the list of click points when the user pans
+    """
+    moved_points = []
+    for point_1_2 in screen_points:
+        moved_point = []
+        for point in point_1_2:
+            moved_point.append(map(lambda a, b: a + b, point, mouse_rel_motion))
+            print "------------------point------------------"
+            print mouse_rel_motion
+            print point
+            print "------------------------------------------------------"
+        moved_points.append(moved_point)
+    print "------------------Printing screen points------------------"
+    print screen_points
+    print moved_points
+    print "------------------------------------------------------"
+    return moved_points
+
+
 
 class SeperatedFaces:
     def __init__(self, data_list):
@@ -372,7 +276,6 @@ class SeperatedFaces:
     def get_objects(self):
         # Need to add check that total no of faces is equal to that of data_list
         return self.objects
-
 
 
 def create_screen(data_list, screen_height, screen_width):
@@ -414,7 +317,15 @@ def create_screen(data_list, screen_height, screen_width):
     seperate_objects_mode = False
     seperated_faces = SeperatedFaces(data_list_2)
 
-    initial_scale, min_z = calculate_display_sizes(screen_height, screen_width, data_list_2)
+    initial_scale, mid_z = calculate_display_sizes(screen_height, screen_width, data_list_2)
+    # print data_list_2
+    z = []
+    for i in data_list_2[1]:
+        z.append(i[2])
+
+    print "Max z value = " + str(max(z))
+    print "Min z value = " + str(min(z))
+    print "Middle z value = " + str(mid_z)
     scale = initial_scale
 
     # Vars for handling mouse up & down events and moving objects on screen by dragging
@@ -429,13 +340,13 @@ def create_screen(data_list, screen_height, screen_width):
         try:
             DISPLAYSURF.fill((0, 0, 0))
 
-            scale, min_z, _polygon_list, avg_normals = display_model(
+            scale, mid_z, _polygon_list, avg_normals = display_model(
                 data_list_2,
                 DISPLAYSURF,
                 angle,
                 centre_point,
                 scale,
-                min_z,
+                mid_z,
                 faces_vis,
                 norm_vis,
                 show_edges,
@@ -457,7 +368,7 @@ def create_screen(data_list, screen_height, screen_width):
                     centre_point,
                     norm_vis,
                     scale,
-                    min_z,
+                    mid_z,
                     screen_height,
                     screen_width,
                     mouse_rel_pos
@@ -466,7 +377,7 @@ def create_screen(data_list, screen_height, screen_width):
             if quit_scr == True:
                 quit_screen(screen_height, screen_width)
 
-            measurement_2 = convert_list(measurement_list)
+            measurement_2 = convert_ui_integer_input(measurement_list)
             measurement_text2(measurement_2, [0, 20])
 
             if len(coords) > 0:
@@ -476,7 +387,7 @@ def create_screen(data_list, screen_height, screen_width):
             for event in pygame.event.get():
                 if event.type == VIDEORESIZE:
                     screen_height, screen_width = event.h, event.w
-                    scale, min_z = calculate_display_sizes(screen_height, screen_width, data_list_2)
+                    scale, mid_z = calculate_display_sizes(screen_height, screen_width, data_list_2)
                     DISPLAYSURF = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE | pygame.DOUBLEBUF, 32)
 
                 if event.type == QUIT:
@@ -600,6 +511,7 @@ def create_screen(data_list, screen_height, screen_width):
                     # model
                     if mouse_dwn_start != None:
                         mouse_rel_pos = map(lambda x, y: x + y, get_rel, mouse_rel_pos)
+                        
 
                 elif event.type == MOUSEBUTTONDOWN:
                     # Start the timer to check how long the left mouse button is pressed
@@ -612,7 +524,7 @@ def create_screen(data_list, screen_height, screen_width):
                         mouse_dwn_delta = time.time() - mouse_dwn_start
                     # If time pressed less than max time assume it's a click
                     if mouse_dwn_start == None or mouse_dwn_delta < max_mouse_dwn:
-                        
+
                         point = list(pygame.mouse.get_pos())
                         clicked = True
 
@@ -649,13 +561,34 @@ def create_screen(data_list, screen_height, screen_width):
 
 
             if len(points) > 0:
+                print points
+                # points = move_screen_points(points, mouse_rel_pos)
+                
                 if len(points[-1]) % 2 == 0:
                     for i in range(0, len(points)):
                         pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i][0], points[i][1])
 
                         if clicked == True:
-                            coords.append(data_point_screen_convertor(points[-1][0], scale, min_z, screen_height, screen_width))
-                            coords.append(data_point_screen_convertor(points[-1][1], scale, min_z, screen_height, screen_width))
+                            coords.append(
+                                data_point_screen_convertor(
+                                    points[-1][0],
+                                    scale,
+                                    mid_z,
+                                    screen_height,
+                                    screen_width,
+                                    mouse_rel_pos
+                                )
+                            )
+                            coords.append(
+                                data_point_screen_convertor(
+                                        points[-1][1],
+                                        scale,
+                                        mid_z,
+                                        screen_height,
+                                        screen_width,
+                                        mouse_rel_pos
+                                    )
+                                )
 
                     if len(cut_plane_2) == 0 or clicked == True or align_to_plane == False:
                         try:
@@ -673,8 +606,8 @@ def create_screen(data_list, screen_height, screen_width):
                         print("align_to_plane: True, cut_plane: None")
                         print cut_plane_2
 
-                        p1 = screen_point_convertor(coord1, scale, min_z, screen_height, screen_width, mouse_rel_pos)
-                        p2 = screen_point_convertor(coord2, scale, min_z, screen_height, screen_width, mouse_rel_pos)
+                        p1 = screen_point_convertor(coord1, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
+                        p2 = screen_point_convertor(coord2, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
                         points.append([p1, p2])
                         int_faces_1 = get_intersect_face_plane(coord1, coord2, data_list_2, cut_plane_2)[0]
                         print(len(int_faces_1))
@@ -706,9 +639,9 @@ def create_screen(data_list, screen_height, screen_width):
                     cutp1 = i[1][0][2]
                     cutp2 = i[1][1][2]
                     cutp1 = rotate_data(cutp1, angle)
-                    cutp1 = screen_point_convertor(cutp1, scale, min_z, screen_height, screen_width, mouse_rel_pos)
+                    cutp1 = screen_point_convertor(cutp1, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
                     cutp2 = rotate_data(cutp2, angle)
-                    cutp2 = screen_point_convertor(cutp2, scale, min_z, screen_height, screen_width, mouse_rel_pos)
+                    cutp2 = screen_point_convertor(cutp2, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
 
                     pygame.draw.circle(DISPLAYSURF, (50, 255, 50), cutp1, 5, 2)
                     pygame.draw.circle(DISPLAYSURF, (50, 255, 50), cutp2, 5, 2)

@@ -1360,39 +1360,37 @@ def rotate_data(coord, angle_z):
     return [x2, y2, z2]
 
 
-def delta_z(data):
+def calc_delta_z(data):
     """
     Calculates the distance between heighest & lowest vertex from the model data
     """
     delta_z_list = []
 
-    for i in range(len(data[1])):
-        delta_z_list.append(data[1][i][2])
+    for i in data[1]:
+        delta_z_list.append(i[2])
 
-    min_point = delta_z_list.index(min(delta_z_list))
-    max_point = delta_z_list.index(max(delta_z_list))
+    max_z_coord = max(delta_z_list)
+    min_z_coord = min(delta_z_list)
+    delta_z = max_z_coord - min_z_coord
+    mid_z = (max_z_coord + min_z_coord) / 2
 
-    del_z = max(delta_z_list) - min(delta_z_list)
-    del_z_min = min(delta_z_list)
+    return(delta_z, mid_z)
 
-    return(del_z, del_z_min)
-
-def delta_x(data): 
-    #Calculates the distance between heighest & lowest vertex
+def calc_delta_x(data): 
+    """
+    Calculates the distance between min x & max x coordinates of vertices
+    """
     delta_x_list = []
 
-    for i in range(len(data[1])):
-        delta_x_list.append(data[1][i][0])
+    for i in data[1]:
+        delta_x_list.append(i[0])
 
-    min_point = delta_x_list.index(min(delta_x_list))
-    max_point = delta_x_list.index(max(delta_x_list))
+    max_x_coord = max(delta_x_list)
+    min_x_coord = min(delta_x_list)
+    delta_x = max_x_coord - min_x_coord
+    mid_x = (max_x_coord + min_x_coord) / 2
 
-    #return(min(delta_z_list), max(delta_z_list), min_point, max_point)
-
-    del_x = max(delta_x_list) - min(delta_x_list)
-    del_x_min = min(delta_x_list)
-
-    return(del_x, del_x_min)
+    return(delta_x, mid_x)
 
 
 def calc_centre(data_verts):
