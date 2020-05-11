@@ -746,7 +746,9 @@ def line_intersection(line_1, line_2):
 
 
 def check_equation(point, eqn):
-    #test function to see if the line equation is correct using a set of coordinates
+    """
+    Test function to see if the line equation is correct using a set of coordinates
+    """
     error_val = 0.005
     m1, c1 = eqn[0]
     n1, b1 = eqn[1]
@@ -1092,6 +1094,9 @@ def get_intersect_face_plane(coord_1, coord_2, data, aligned_plane):
 
 
 def align_plane(int_faces, plane, data, coord1, coord2):
+    """
+    Aligns the cut plane to the average vector of the edges intersecting the plane
+    """
     try:
         verts_above = []
         verts_below = []
@@ -1195,7 +1200,11 @@ def final_norm(line_length, vert_to_cut_point, offset):
 
 
 def normal_move_calc(total_length, move_dist, l_1):
-    #function to calculate the distance to move the vertex perpendicular to the line between it and a connected point
+    """
+    function to calculate the distance to move the vertex perpendicular to 
+    the line between it and a connected point
+    """
+
     total_length, move_dist, l_1 = map(float, (total_length, move_dist, l_1))
     tan_ang_1 = move_dist / total_length
 
@@ -1209,7 +1218,10 @@ def normal_move_calc(total_length, move_dist, l_1):
 
 
 def plane_from_vector(vector, vert_1):
-    #Calculates the plane equation perpendicular to a vector passing through a vertex
+    """
+    Calculates the plane equation perpendicular to a vector passing through a vertex
+    """
+
     x, y, z = vector
     d = ((vert_1[0] * x) + (vert_1[1] * y) + (vert_1[2] * z))
     plane_eqn = [x, y, z, d]
@@ -1218,6 +1230,9 @@ def plane_from_vector(vector, vert_1):
 
 
 def move_vertices(int_faces, plane_eqn, measurement_2, data, connected_faces=None):
+    """
+    Moves vertices surrounding the cut plane to resize the model
+    """
     face_eqns = equations(data)
     plane_eqn = plane_eqn[-1]
     measurement_1 = calc_measurement(int_faces)
@@ -1394,7 +1409,9 @@ def calc_delta_x(data):
 
 
 def calc_centre(data_verts):
-    #calculates the centre point of all datapoints
+    """
+    Calculates the centre point or average of all vertices
+    """
     centre = [0.0, 0.0, 0.0]
     for i in range(0, len(data_verts)):
         centre = map(lambda a, b: a + b, centre, data_verts[i])
@@ -1405,6 +1422,9 @@ def calc_centre(data_verts):
 
 
 def calc_face_centre(face, data):
+    """
+    Calculates the centre point of a face
+    """
     centre = [0.0, 0.0, 0.0]
     data_verts = data[2][face]
 
