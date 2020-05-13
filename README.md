@@ -33,28 +33,28 @@ Once the program's running you can click two points either side of the part of t
 
 ### Other commands are as follows:
 
-E - Shows or hides polygon edges
+**E** - Shows or hides polygon edges
 
-CTRL + E - Displays the edges of the pattern before you made any changes allowing you to compare the two
+**CTRL + E** - Displays the edges of the pattern before you made any changes allowing you to compare the two
 
-Left & Right Arrow keys rotate the model
+**Left** & **Right** arrow keys rotate the model
 
-F - Front view
+**F** - Front view
 
-L - Left view
+**L** - Left view
 
-R - Right view
+**R** - Right view
 
-B - Back view
+**B** - Back view
 
-C - Clears the cut points
+**C** - Clears the cut points
 
-A - Aligns the cutting plane to the average perpendicular plane to the local geometry
+**A** - Aligns the cutting plane to the average perpendicular plane to the local geometry
 
-SHIFT - Whilst clicking a second point means the line will be drawn along the x or y axis.
+**SHIFT** - Whilst clicking a second point means the line will be drawn along the x or y axis.
 
-V - Displays the number of the face
+**V** - Displays the number of the face
 
-N - Toggles the display of the average normal at each vertex
+**N** - Toggles the display of the average normal at each vertex
 
-ESC - Brings up the quit menu
+**ESC** - Brings up the quit menu
