@@ -282,17 +282,21 @@ class SeperatedFaces:
 def create_screen(data_list, screen_height, screen_width):
     centre_point = calc_centre(data_list[1])
     data_list_copy = copy.deepcopy(data_list)
+
+    logo_rel_path = 'logo/Bio-Logo-v1.jpg'
+    logo_path = os.path.join(os.getcwd(), logo_rel_path)
+    logo = pygame.image.load(logo_path)
+    pygame.display.set_icon(logo)
+
     DISPLAYSURF = pygame.display.set_mode(
         (screen_width, screen_height),
         pygame.RESIZABLE|pygame.HWSURFACE|pygame.DOUBLEBUF,
         32
     )
-    file_rel_path = 'logo/Bio-Logo-v1.jpg'
-    logo = pygame.image.load(os.path.join(os.getcwd(), file_rel_path))
+
     pygame.display.set_caption('BioDesic Pattern Fitter')
-    pygame.display.set_icon(logo)
     background_colour = (50, 50 ,50)
-    # pygame.key.set_repeat(50, 30)
+    pygame.key.set_repeat(50, 10)
 
     angle = 0
     delta_ang_pheta = 2
@@ -433,6 +437,7 @@ def create_screen(data_list, screen_height, screen_width):
 
                     elif event.key == K_r:
                         if CONTROL:
+                            mouse_rel_pos = [0, 0]
                             scale = initial_scale
                         else:
                             angle = 90
