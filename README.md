@@ -1,3 +1,5 @@
+![Image of logo](https://github.com/SimonTanner/BioDesic-Pattern-Fitter/blob/Refactor_19_04/logo/Bio-Logo-v1.jpg)
+
 # BioDesic-Pattern-Fitter
 
 ### Introduction
@@ -21,11 +23,11 @@ You also need Pygame. To install it run the command:
 
 ### To run the program:
 
-From the command shell (Bash Unix or Mac) enter **python Biodesic\ Fit_Version_1** or type **python** hit enter and then type **exec(open("Biodesic Fit_Version_1.py").read())** from inside the python shell
+From the command shell (Bash Unix or Mac) enter **python biodesic_fit_version_1**
 
 For Windows you can open the code using the IDLE or double click the .py file and it will run automatically.
 
-Once the program's running you can click two points either side of the part of the model you want to cut through and it will display the measurement. You can then type in the new measurement and hit enter repeatedly until it acheives thee desired result.
+Once the program's running you can click two points either side of the part of the model you want to cut through and it will display the measurement. You can then type in the new measurement and hit enter repeatedly until it achieves thee desired result.
 
 ![Image of GUI](https://github.com/SimonTanner/BioDesic-Pattern-Fitter/blob/master/images/BioDesic-Pattern-Fitter.jpg)
 
