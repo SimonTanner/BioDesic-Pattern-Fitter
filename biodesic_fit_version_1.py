@@ -29,7 +29,7 @@ Screen_height = 900
 
 def screen_point_convertor(point, scale, mid_z, screen_height, screen_width, rel_pos=(0, 0)):
     """
-    Converts the data coordinates to (x, y, z) to fit on screen (x, y)
+    Converts the data coordinates (x, y, z) to fit on screen (x, y)
     """
     point = map(float, point)
     point[0] = int(point[0] * scale + screen_width / 2) + rel_pos[0]
@@ -61,12 +61,10 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
     """
     Draws the polygons of each face as different colours
     """
-
     polygon_list = []
-    #height = pygame.display.get_height()
     centre_point = rotate_data(centre_point, angle)
-    #eqns_2 = correct_normals(data)[-1:][0]
-    eqns_2 = equations(data)    
+    eqns_2 = equations(data)
+    edge_colour = (200, 0, 0)   # Red
 
     for i in range(0, len(data[2])):
         polygon = []
@@ -95,14 +93,9 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
         polygon = polygon_list[i][1]
         face_no = polygon_list[i][0]
         normal = polygon_list[i][3]
-        # if face_no == 105:
-        #     print angle
-        #     print normal
 
         if len(polygon) > 0:
-            dot_prod = abs(sum(map(lambda a, b: a * b, normal, [0.0, 1.0, 0.0])))
-            dot_prod = dot_prod ** 2
-            # print dot_prod
+            dot_prod = abs(sum(map(lambda a, b: a * b, normal, [0.0, 1.0, 0.0]))) ** 2
             colour = int(255 * i / len(data[2]))
             colour_1 = int(200 * dot_prod)
             colour_2 = int(255 * dot_prod)
@@ -117,9 +110,9 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
             if show_edges == True:
                 for k in range(0, len(polygon)):
                     if k == len(polygon) - 1:
-                        pygame.draw.line(display, (0, 255, 0), polygon[k], polygon[0], 1)
+                        pygame.draw.line(display, edge_colour, polygon[k], polygon[0], 1)
                     else:
-                        pygame.draw.line(display, (0, 255, 0), polygon[k], polygon[k+1], 1)
+                        pygame.draw.line(display, edge_colour, polygon[k], polygon[k+1], 1)
 
         if show_av_norms == True:
             avg_normals = draw_avg_normals(data, eqns_2, scale, angle, mid_z, display, screen_height, screen_width, avg_normals, rel_pos)
@@ -127,7 +120,12 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
         #     display.blit(new_display, (0, 0))
     return scale, mid_z, polygon_list, avg_normals
 
-def draw_avg_normals(data, eqns, scale, angle, mid_z, display, screen_height, screen_width, avg_normals=None, rel_pos=(0, 0)):
+def draw_avg_normals(data, eqns, scale, angle, mid_z, display, screen_height,
+screen_width, avg_normals=None, rel_pos=(0, 0)):
+    """
+    Displays the average normal of faces surrounding a vertex
+    """
+    normal_colour = (255, 255, 255)
     if avg_normals == None:
         avg_normals = calculate_all_avg_normals(data, eqns)
     for i in range(0, len(avg_normals)):
@@ -143,13 +141,16 @@ def draw_avg_normals(data, eqns, scale, angle, mid_z, display, screen_height, sc
             p2 = rotate_data(p2, angle)
             p2 = screen_point_convertor(p2, scale, mid_z, screen_height, screen_width, rel_pos)
 
-            pygame.draw.line(display, [255, 255, 255], p1, p2, 1)
+            pygame.draw.line(display, normal_colour, p1, p2, 1)
 
     return avg_normals
 
 
-def draw_edges(data, display, angle, centre_point, show_av_norms, scale, mid_z, screen_height, screen_width, rel_pos=(0, 0)):
-    #Draws the polygons of each face as different colours
+def draw_edges(data, display, angle, centre_point, show_av_norms, scale, mid_z,
+screen_height, screen_width, rel_pos=(0, 0)):
+    """
+    Draws the polygons of each face as different colours
+    """
 
     polygon_list = []
     centre_point = rotate_data(centre_point, angle)
@@ -182,7 +183,7 @@ def draw_edges(data, display, angle, centre_point, show_av_norms, scale, mid_z, 
         polygon_list.append(polygon)
 
 
-def cut_lines(points):
+def draw_cut_lines(points):
     point_count = len(points)
     if len(points) % 2 != 0:
         point_count -= 1
@@ -230,15 +231,15 @@ def move_screen_points(screen_points, mouse_rel_motion):
         moved_point = []
         for point in point_1_2:
             moved_point.append(map(lambda a, b: a + b, point, mouse_rel_motion))
-            print "------------------point------------------"
-            print mouse_rel_motion
-            print point
-            print "------------------------------------------------------"
+            print("------------------point------------------")
+            print(mouse_rel_motion)
+            print(point)
+            print("------------------------------------------------------")
         moved_points.append(moved_point)
-    print "------------------Printing screen points------------------"
-    print screen_points
-    print moved_points
-    print "------------------------------------------------------"
+    print("------------------Printing screen points------------------")
+    print(screen_points)
+    print(moved_points)
+    print("------------------------------------------------------")
     return moved_points
 
 
@@ -280,14 +281,18 @@ class SeperatedFaces:
 
 def create_screen(data_list, screen_height, screen_width):
     centre_point = calc_centre(data_list[1])
-    data_list_2 = copy.deepcopy(data_list)
+    data_list_copy = copy.deepcopy(data_list)
     DISPLAYSURF = pygame.display.set_mode(
         (screen_width, screen_height),
         pygame.RESIZABLE|pygame.HWSURFACE|pygame.DOUBLEBUF,
         32
     )
-    pygame.display.set_caption('BioDesic Pattern Fitter Version 1')
-    pygame.key.set_repeat(50, 30)
+    file_rel_path = 'logo/Bio-Logo-v1.jpg'
+    logo = pygame.image.load(os.path.join(os.getcwd(), file_rel_path))
+    pygame.display.set_caption('BioDesic Pattern Fitter')
+    pygame.display.set_icon(logo)
+    background_colour = (50, 50 ,50)
+    # pygame.key.set_repeat(50, 30)
 
     angle = 0
     delta_ang_pheta = 2
@@ -315,17 +320,16 @@ def create_screen(data_list, screen_height, screen_width):
     avg_normals = None
 
     seperate_objects_mode = False
-    seperated_faces = SeperatedFaces(data_list_2)
+    seperated_faces = SeperatedFaces(data_list_copy)
 
-    initial_scale, mid_z = calculate_display_sizes(screen_height, screen_width, data_list_2)
-    # print data_list_2
+    initial_scale, mid_z = calculate_display_sizes(screen_height, screen_width, data_list_copy)
     z = []
-    for i in data_list_2[1]:
+    for i in data_list_copy[1]:
         z.append(i[2])
 
-    print "Max z value = " + str(max(z))
-    print "Min z value = " + str(min(z))
-    print "Middle z value = " + str(mid_z)
+    print("Max z value = " + str(max(z)))
+    print("Min z value = " + str(min(z)))
+    print("Middle z value = " + str(mid_z))
     scale = initial_scale
 
     # Vars for handling mouse up & down events and moving objects on screen by dragging
@@ -338,10 +342,10 @@ def create_screen(data_list, screen_height, screen_width):
 
     while True:
         try:
-            DISPLAYSURF.fill((0, 0, 0))
+            DISPLAYSURF.fill(background_colour)
 
             scale, mid_z, _polygon_list, avg_normals = display_model(
-                data_list_2,
+                data_list_copy,
                 DISPLAYSURF,
                 angle,
                 centre_point,
@@ -358,7 +362,7 @@ def create_screen(data_list, screen_height, screen_width):
 
             clicked = False
 
-            check_measurement = False
+            # check_measurement = False
 
             if show_unedited == True:
                 draw_edges(
@@ -387,7 +391,7 @@ def create_screen(data_list, screen_height, screen_width):
             for event in pygame.event.get():
                 if event.type == VIDEORESIZE:
                     screen_height, screen_width = event.h, event.w
-                    scale, mid_z = calculate_display_sizes(screen_height, screen_width, data_list_2)
+                    scale, mid_z = calculate_display_sizes(screen_height, screen_width, data_list_copy)
                     DISPLAYSURF = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE | pygame.DOUBLEBUF, 32)
 
                 if event.type == QUIT:
@@ -398,10 +402,10 @@ def create_screen(data_list, screen_height, screen_width):
                         quit_scr = True
 
                     elif event.key == K_y and quit_scr == True:
-                        quit_game(data_list_2, True)
+                        quit_game(data_list_copy, True)
 
                     elif event.key == K_n and quit_scr == True:
-                        quit_game(data_list_2, False)
+                        quit_game(data_list_copy, False)
 
                     elif event.key == K_c:
                         if quit_scr and not CONTROL:
@@ -463,7 +467,7 @@ def create_screen(data_list, screen_height, screen_width):
                         norm_vis = flip_bool[norm_vis]
 
                     elif event.key == K_DELETE:
-                        data_list_2 = copy.deepcopy(data_list)
+                        data_list_copy = copy.deepcopy(data_list)
 
                     elif event.key == K_a:
                         if len(cut_plane) > 0 and align_to_plane == False:
@@ -492,8 +496,8 @@ def create_screen(data_list, screen_height, screen_width):
                         else:
                             plane = cut_plane
 
-                        data_list_2, avg_normals = move_vertices(int_faces_1, plane, measurement_2, data_list_2, connected_faces)
-                        check_measurement = True
+                        data_list_copy, avg_normals = move_vertices(int_faces_1, plane, measurement_2, data_list_copy, connected_faces)
+                        # check_measurement = True
 
                     elif event.key == K_BACKSPACE and len(measurement_list) > 1:
                         del(measurement_list[-1])
@@ -561,7 +565,7 @@ def create_screen(data_list, screen_height, screen_width):
 
 
             if len(points) > 0:
-                print points
+                print(points)
                 # points = move_screen_points(points, mouse_rel_pos)
                 
                 if len(points[-1]) % 2 == 0:
@@ -592,7 +596,7 @@ def create_screen(data_list, screen_height, screen_width):
 
                     if len(cut_plane_2) == 0 or clicked == True or align_to_plane == False:
                         try:
-                            int_faces_1, cut_plane = get_intersect_face_plane(coords[-2], coords[-1], data_list_2, [])
+                            int_faces_1, cut_plane = get_intersect_face_plane(coords[-2], coords[-1], data_list_copy, [])
 
                         except IndexError as error:
                             print(error)
@@ -601,22 +605,22 @@ def create_screen(data_list, screen_height, screen_width):
                         plane_aligned == False
 
                     if align_to_plane == True and len(cut_plane_2) == 0:
-                        cut_plane_2, coord1, coord2 = align_plane(int_faces_1, cut_plane, data_list_2, coords[-2], coords[-1])
+                        cut_plane_2, coord1, coord2 = align_plane(int_faces_1, cut_plane, data_list_copy, coords[-2], coords[-1])
                         # coords.extend([coord1, coord2])
                         print("align_to_plane: True, cut_plane: None")
-                        print cut_plane_2
+                        print(cut_plane_2)
 
                         p1 = screen_point_convertor(coord1, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
                         p2 = screen_point_convertor(coord2, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
                         points.append([p1, p2])
-                        int_faces_1 = get_intersect_face_plane(coord1, coord2, data_list_2, cut_plane_2)[0]
+                        int_faces_1 = get_intersect_face_plane(coord1, coord2, data_list_copy, cut_plane_2)[0]
                         print(len(int_faces_1))
                         plane_aligned = True
 
                     elif align_to_plane == True and len(cut_plane_2) > 0:
                         print("align_to_plane: True, cut_plane: True")
-                        print cut_plane_2
-                        int_faces_1 = get_intersect_face_plane(coords[-2], coords[-1], data_list_2, cut_plane_2)[0]
+                        print(cut_plane_2)
+                        int_faces_1 = get_intersect_face_plane(coords[-2], coords[-1], data_list_copy, cut_plane_2)[0]
                         plane_aligned = True
                         print(len(int_faces_1))
 
@@ -652,15 +656,16 @@ def create_screen(data_list, screen_height, screen_width):
             FPSClock.tick(FPS)
         
         except Exception as error:
-            print error
-            print "Oh no!"
-            print traceback.format_exc()
+            print(error)
+            print("Oh no!")
+            print(traceback.format_exc())
 
 
 
-def main(debug):
+def main(debug=False):
     formatter = InputFormatter(file_name)
     data_list = formatter.data
+
     if debug:
         # Output data for debugging
         with open("data.txt", "w+") as file:
@@ -669,7 +674,13 @@ def main(debug):
         with open("eqns.txt", "w+") as file:
             json.dump(equations(data_list), file, indent=4)
             file.close()
+
     create_screen(data_list, Screen_height, Screen_width)
 
 if __name__ == '__main__':
-    main(False)
+    debug = sys.argv[1].split("=")[1]
+    if debug == "True":
+        debug = True
+    else:
+        debug = False
+    main(debug)
