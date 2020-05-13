@@ -45,7 +45,7 @@ def measurement_text2(measurement, screen_coord):
     measurement = str(measurement)
 
     fontobj = pygame.font.Font('freesansbold.ttf', 14)
-    textobj = fontobj.render('New Measurement: ' + measurement + ' mm', True, [100, 100, 255], [0, 0, 0])
+    textobj = fontobj.render('new measurement: ' + measurement + ' mm', True, [100, 100, 255], [0, 0, 0])
     textsurf = textobj.get_rect()
     textsurf.topleft = ( (20 + screen_coord[0]), (20 + screen_coord[1]) )
 
@@ -59,7 +59,7 @@ def text1(text, screen_coord):
     fontobj = pygame.font.Font('freesansbold.ttf', 12)
     textobj = fontobj.render(text + ' mm', True, [100, 100, 255], [0, 0, 0])
     textsurf = textobj.get_rect()
-    textsurf.topleft = ( (20 + screen_coord[0]), (20 + screen_coord[1]) )
+    textsurf.topleft = ((20 + screen_coord[0]), (20 + screen_coord[1]))
 
     display.blit(textobj, textsurf)
 
@@ -72,7 +72,7 @@ def text2(text, screen_coord, colour, display=None):
     fontobj = pygame.font.Font('freesansbold.ttf', 12)
     textobj = fontobj.render(text, True, [0, 0, 0])
     textsurf = textobj.get_rect()
-    textsurf.center = ( (screen_coord[0]), (screen_coord[1]) )
+    textsurf.center = ((screen_coord[0]), (screen_coord[1]))
 
     display.blit(textobj, textsurf)
 
@@ -84,7 +84,7 @@ def text3(text, screen_coord, colour):
     fontobj = pygame.font.Font('freesansbold.ttf', 12)
     textobj = fontobj.render(text, True, colour, [0, 0, 0])
     textsurf = textobj.get_rect()
-    textsurf.topleft = ( (20 + screen_coord[0]), (20 + screen_coord[1]) )
+    textsurf.topleft = ((20 + screen_coord[0]), (20 + screen_coord[1]))
 
     display.blit(textobj, textsurf)
 
