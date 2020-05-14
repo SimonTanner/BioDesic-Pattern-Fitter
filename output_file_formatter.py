@@ -28,21 +28,19 @@ class OutputFormatter():
             for face in data_list[2]:
                 data += "f {}\n".format(" ".join(map(lambda x: str(x), face)))
         except Exception as error:
-            print self.__class__.__module__+ ".py" + ", " + self.__class__.__name__ + ":"
-            print error
+            self.print_error_msg(error)
 
         return data
 
     def check_file_exists(self, file_path, file_number):
         try:
             file_name = file_path.format(file_number, self.output_format)
-            print file_name
+            print(file_name)
             if os.path.exists(file_name):
                 file_number += 1
                 file_name = self.check_file_exists(file_path, file_number)
         except Exception as error:
-            print self.__class__.__module__+ ".py" + ", " + self.__class__.__name__ + ":"
-            print error
+            self.print_error_msg(error)
 
         return file_name
 
@@ -57,3 +55,7 @@ class OutputFormatter():
             data = self.obj_format(data)
         op_file_new.write(str(data))
         op_file_new.close()
+
+    def print_error_msg(self, err):
+        print(self.__class__.__module__+ ".py" + ", " + self.__class__.__name__ + ":")
+        print(error)

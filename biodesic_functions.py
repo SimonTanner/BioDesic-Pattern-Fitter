@@ -871,17 +871,17 @@ def correct_normals(data):
             # If condition below chooses the 2 possible line equation depending on the index of the vertices
             if 0 in place_1:
                 if 1 in place_1:
-                    # print '0'
+                    # print('0')
                     line_eqn_1_2_1 = eqns[face_2][2][2]
                     line_eqn_1_2_2 = eqns[face_2][3][2]
 
                 elif 2 in place_1:
-                    # print '1'
+                    # print('1')
                     line_eqn_1_2_1 = eqns[face_2][1][2]
                     line_eqn_1_2_2 = eqns[face_2][2][2]
 
             else:
-                # print '2'
+                # print('2')
                 line_eqn_1_2_1 = eqns[face_2][1][2]
                 line_eqn_1_2_2 = eqns[face_2][3][2]
 
@@ -1141,13 +1141,13 @@ def align_plane(int_faces, plane, data, coord1, coord2):
     
     except Exception as error:
         if error:
-            print error
-    print "-------------------------------------"
-    print "calculating aligned plane"
-    print plane
-    print c1
-    print c2
-    print "-------------------------------------"
+            print(error)
+    print("-------------------------------------")
+    print("calculating aligned plane")
+    print(plane)
+    print(c1)
+    print(c2)
+    print("-------------------------------------")
 
     return plane, c1, c2
 
