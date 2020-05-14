@@ -1365,14 +1365,50 @@ def move_vertices(int_faces, plane_eqn, measurement_2, data, connected_faces=Non
     return data, av_normals
 
 
-def rotate_data(coord, angle_z):
-    angle_z = math.radians(angle_z)
-    x1, y1, z1 = coord
-    x2 = x1 * math.cos(angle_z) + y1 * math.sin(angle_z)
-    y2 = x1 * math.sin(angle_z) - y1 * math.cos(angle_z)
-    z2 = z1
+def rotate_data(coords, angle):
+    """
+    Rotates vectors about the origin
+    """
+    cos = math.cos
+    sin = math.sin
 
-    return [x2, y2, z2]
+    def return_0(val, neg=False):
+        return 0
+    
+    def return_1(val, neg=False):
+        return 1
+
+    rotate_x = [
+        [(return_1, 1), (return_0, 1), (return_0, 1)],
+        [(return_0, 1), (cos, 1), (sin, -1)],
+        [(return_0, 1), (sin, 1), (cos, 1)]
+    ]
+
+    rotate_y = [
+        [(cos, 1), (return_0, 1), (sin, 1)],
+        [(return_0, 1), (return_1, 1), (return_0, 1)],
+        [(sin, 1), (return_0, 1), (cos, 1)]
+    ]
+
+    rotate_z = [
+        [(cos, 1), (sin, +1), (return_0, 1)],
+        [(sin, 1), (cos, -1), (return_0, 1)],
+        [(return_0, 1), (return_0, 1), (return_1, 1)]
+    ]
+
+    rotate = [rotate_x, rotate_y, rotate_z]
+
+    def apply_matrix(matrix, angle, coords):
+        angle = math.radians(angle)
+        coords = map(lambda a: sum(map(lambda b, c: b[0](angle) * b[1] * c, a, coords)), matrix) 
+        return coords
+
+    for idx in range(0, len(angle)):
+        if angle[idx] != 0:
+            coords = apply_matrix(rotate[idx], angle[idx], coords)
+
+
+    return coords
 
 
 def calc_delta_z(data):
