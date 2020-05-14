@@ -20,7 +20,7 @@ file_path = os.path.join(os.getcwd(), file_name)
 
 pygame.init()
 
-FPS = 10
+FPS = 20
 FPSClock = pygame.time.Clock()
 
 Screen_width = 1400
@@ -298,8 +298,32 @@ def create_screen(data_list, screen_height, screen_width):
     background_colour = (50, 50 ,50)
     pygame.key.set_repeat(50, 10)
 
-    angle = 0
-    delta_ang_pheta = 2
+    view_angles = {
+        'front': (0, 0, 0),
+        'back': (0, 0, 180),
+        'left': (0, 0, 90),
+        'right': (0, 0, -90),
+        'top': (-90, 0, 0),
+        'bottom': (90, 0, 0)
+    }
+    angle = list(view_angles['front'])
+    delta_ang_amount = 2 # Number of degrees to rotate by every frame
+    # Dict for getting rotation coords by axis
+    delta_ang_all = {
+        'x': (delta_ang_amount, 0, 0),
+        'y': (0, delta_ang_amount, 0),
+        'z': (0, 0, delta_ang_amount)
+    }
+    delta_ang = [0, 0, 0]
+
+    def add_angles(angle, delta_ang, neg=False):
+        const = 1
+        if neg:
+            const = -1
+        angle = map(lambda a, b: a + const * b, angle, delta_ang)
+        return angle
+
+
     points = []
     SHIFT = False
     CONTROL = False
@@ -423,27 +447,40 @@ def create_screen(data_list, screen_height, screen_width):
                             cut_plane_2 = []
                             int_faces = []
 
+                    # Rotate view clockwise about z axis
                     elif event.key == K_LEFT:
-                        angle += delta_ang_pheta
+                        angle = add_angles(angle, delta_ang_all['z'])
 
+                    # Rotate view counter-clockwise about z axis
                     elif event.key == K_RIGHT:
-                        angle -= delta_ang_pheta
+                        angle = add_angles(angle, delta_ang_all['z'], True)
+
+                    # Rotate view clockwise about x axis
+                    elif event.key == K_UP:
+                        angle = add_angles(angle, delta_ang_all['x'])
+                    
+                    # Rotate view counter-clockwise about x axis
+                    elif event.key == K_DOWN:
+                        angle = add_angles(angle, delta_ang_all['x'], True)
 
                     elif event.key == K_f:
-                        angle = 0
+                        angle = list(view_angles['front'])
 
                     elif event.key == K_b:
-                        angle = 180
+                        angle = list(view_angles['back'])
 
                     elif event.key == K_r:
                         if CONTROL:
                             mouse_rel_pos = [0, 0]
                             scale = initial_scale
                         else:
-                            angle = 90
+                            angle = list(view_angles['right'])
                         
                     elif event.key == K_l:
-                        angle = -90
+                        angle = list(view_angles['left'])
+
+                    elif event.key == K_t:
+                        angle = list(view_angles['top'])
                     
                     elif event.key == K_MINUS:
                         scale *= 0.9
