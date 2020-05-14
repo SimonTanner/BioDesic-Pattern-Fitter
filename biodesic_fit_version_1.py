@@ -683,9 +683,13 @@ def main(debug=False):
     create_screen(data_list, Screen_height, Screen_width)
 
 if __name__ == '__main__':
-    debug = sys.argv[1].split("=")[1]
-    if debug == "True":
-        debug = True
+    args = sys.argv
+    if len(args) > 1:
+        debug = args[1].split("=")
     else:
         debug = False
+    print(debug)
+    if debug == "True":
+        debug = True
+    
     main(debug)
