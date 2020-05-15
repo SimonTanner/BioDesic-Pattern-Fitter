@@ -234,15 +234,11 @@ def move_screen_points(screen_points, mouse_rel_motion):
         moved_point = []
         for point in point_1_2:
             moved_point.append(map(lambda a, b: a + b, point, mouse_rel_motion))
-            print("------------------point------------------")
-            print(mouse_rel_motion)
-            print(point)
-            print("------------------------------------------------------")
+            # print("------------------point------------------")
+            # print(mouse_rel_motion)
+            # print(point)
+            # print("------------------------------------------------------")
         moved_points.append(moved_point)
-    print("------------------Printing screen points------------------")
-    print(screen_points)
-    print(moved_points)
-    print("------------------------------------------------------")
     return moved_points
 
 def display_cut_lines(display, int_faces, angle, centre_point, scale, mid_z,
