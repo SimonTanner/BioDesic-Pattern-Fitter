@@ -20,7 +20,7 @@ file_path = os.path.join(os.getcwd(), file_name)
 
 pygame.init()
 
-FPS = 20
+FPS = 30
 FPSClock = pygame.time.Clock()
 
 Screen_width = 1400
@@ -62,8 +62,9 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
     Draws the polygons of each face as different colours
     """
     polygon_list = []
-    centre_point = rotate_data(centre_point, angle)
+    centre_point = rotate_data(centre_point, angle, centre_point)
     eqns_2 = equations(data)
+    y_normal = [0.0, 1.0, 0.0]
     edge_colour = (200, 0, 0)   # Red
 
     for i in range(0, len(data[2])):
@@ -72,8 +73,12 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
 
         for n in range(0, len(data[2][i])):
             vert_no = data[2][i][n]
-            points = rotate_data(data[1][(vert_no - 1)], angle)
-            points = screen_point_convertor(points, scale, mid_z, screen_height, screen_width, rel_pos)
+            
+            points = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
+            # print("Point before rotation: " + str(data[1][(vert_no - 1)]))
+            # print("Point after rotation: " + str(points))
+            # sys.exit()
+            points = screen_point_convertor(points, scale, centre_point[2], screen_height, screen_width, rel_pos)
             normal = eqns_2[i][4]
             normal = rotate_data(normal, angle)
 
@@ -82,7 +87,7 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
 
         if len(polygon) > 2:
             polygon_center = calc_face_centre(face_no, data)
-            polygon_center = rotate_data(polygon_center, angle)
+            polygon_center = rotate_data(polygon_center, angle, centre_point)
             polygon_list.append([i, polygon, polygon_center, normal])
 
     polygon_list = sorted(polygon_list, key=sort_polygons)
@@ -95,15 +100,16 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
         normal = polygon_list[i][3]
 
         if len(polygon) > 0:
-            dot_prod = abs(sum(map(lambda a, b: a * b, normal, [0.0, 1.0, 0.0]))) ** 2
+            dot_prod = abs(sum(map(lambda a, b: a * b, normal, y_normal))) ** 2
             colour = int(255 * i / len(data[2]))
             colour_1 = int(200 * dot_prod)
             colour_2 = int(255 * dot_prod)
+            # print("colour 1: " + str(colour_1) + ", colour 2: " + str(colour_2))
             pygame.draw.polygon(display, (255 , colour_2, 255 - colour_1), polygon, 0)
 
             if show_face_no == True: 
                 polygon_center = calc_face_centre(face_no, data)
-                polygon_center = rotate_data(polygon_center, angle)
+                polygon_center = rotate_data(polygon_center, angle, centre_point)
                 polygon_center = screen_point_convertor(polygon_center, scale, mid_z, screen_height, screen_width, rel_pos)
                 text2((face_no+1), polygon_center, (255, colour, 255 - colour))
 
@@ -299,8 +305,8 @@ def create_screen(data_list, screen_height, screen_width):
     pygame.key.set_repeat(50, 10)
 
     view_angles = {
-        'front': (0, 0, 0),
-        'back': (0, 0, 180),
+        'front': (0, 0, 180),
+        'back': (0, 0, 0),
         'left': (0, 0, 90),
         'right': (0, 0, -90),
         'top': (-90, 0, 0),
@@ -314,7 +320,6 @@ def create_screen(data_list, screen_height, screen_width):
         'y': (0, delta_ang_amount, 0),
         'z': (0, 0, delta_ang_amount)
     }
-    delta_ang = [0, 0, 0]
 
     def add_angles(angle, delta_ang, neg=False):
         const = 1
