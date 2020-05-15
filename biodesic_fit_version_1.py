@@ -686,9 +686,9 @@ def create_screen(data_list, screen_height, screen_width):
                 for i in int_faces_1:
                     cutp1 = i[1][0][2]
                     cutp2 = i[1][1][2]
-                    cutp1 = rotate_data(cutp1, angle)
+                    cutp1 = rotate_data(cutp1, angle, centre_point)
                     cutp1 = screen_point_convertor(cutp1, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
-                    cutp2 = rotate_data(cutp2, angle)
+                    cutp2 = rotate_data(cutp2, angle, centre_point)
                     cutp2 = screen_point_convertor(cutp2, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
 
                     pygame.draw.circle(DISPLAYSURF, (50, 255, 50), cutp1, 5, 2)
