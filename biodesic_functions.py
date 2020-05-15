@@ -1180,14 +1180,22 @@ def vector_length(vector):
     return(vec_length)
 
 
-def sum_vectors(vec_1, vec_2):
-    vec_sum = map(lambda a, b: a + b, vec_1, vec_2)
+def sum_vectors(vec_1, vec_2, subtract=False):
+    """
+    Adds vec_1 & vec_2 or Subtracts vec_2 from vec_1
+    """
+    if subtract:
+        vec_sum = map(lambda a, b: a - b, vec_1, vec_2)
+    else:
+        vec_sum = map(lambda a, b: a + b, vec_1, vec_2)
 
     return(vec_sum)
 
 
 def final_norm(line_length, vert_to_cut_point, offset):
-    #Function to calculate the amount to move the vertex at each end of the line
+    """
+    Function to calculate the amount to move the vertex at each end of the line
+    """
     tan_ang_1 = offset / line_length
     c1 = vert_to_cut_point
     c = line_length
@@ -1236,6 +1244,7 @@ def move_vertices(int_faces, plane_eqn, measurement_2, data, connected_faces=Non
     face_eqns = equations(data)
     plane_eqn = plane_eqn[-1]
     measurement_1 = calc_measurement(int_faces)
+    origin = [0.0, 0.0, 0.0]
     # ratio = measurement_2 / measurement_1
     delta_l = measurement_2 - measurement_1
     # delta_h, delta_tan_ang, sum_ang = 0.0, 0.0, 0.0
@@ -1253,10 +1262,10 @@ def move_vertices(int_faces, plane_eqn, measurement_2, data, connected_faces=Non
         vert_3_no = int_faces[i][1][1][0]
         vert_4_no = int_faces[i][1][1][1]
 
-        move_vecs['vectors'][str(vert_1_no)] = [0.0, 0.0, 0.0]
-        move_vecs['vectors'][str(vert_2_no)] = [0.0, 0.0, 0.0]
-        move_vecs['vectors'][str(vert_3_no)] = [0.0, 0.0, 0.0]
-        move_vecs['vectors'][str(vert_4_no)] = [0.0, 0.0, 0.0]
+        move_vecs['vectors'][str(vert_1_no)] = origin
+        move_vecs['vectors'][str(vert_2_no)] = origin
+        move_vecs['vectors'][str(vert_3_no)] = origin
+        move_vecs['vectors'][str(vert_4_no)] = origin
 
         move_vecs['numbers'][str(vert_1_no)] = 0
         move_vecs['numbers'][str(vert_2_no)] = 0
@@ -1365,9 +1374,9 @@ def move_vertices(int_faces, plane_eqn, measurement_2, data, connected_faces=Non
     return data, av_normals
 
 
-def rotate_data(coords, angle):
+def rotate_data(coords, angle, offset=[0, 0, 0]):
     """
-    Rotates vectors about the origin
+    Rotates vectors about the offset point
     """
     cos = math.cos
     sin = math.sin
@@ -1377,7 +1386,9 @@ def rotate_data(coords, angle):
     
     def return_1(val, neg=False):
         return 1
-
+    
+    translated_point = sum_vectors(coords, offset, True)
+    # Rotational matrices around axes x, y, z
     rotate_x = [
         [(return_1, 1), (return_0, 1), (return_0, 1)],
         [(return_0, 1), (cos, 1), (sin, -1)],
@@ -1391,8 +1402,8 @@ def rotate_data(coords, angle):
     ]
 
     rotate_z = [
-        [(cos, 1), (sin, +1), (return_0, 1)],
-        [(sin, 1), (cos, -1), (return_0, 1)],
+        [(cos, 1), (sin, -1), (return_0, 1)],
+        [(sin, 1), (cos, 1), (return_0, 1)],
         [(return_0, 1), (return_0, 1), (return_1, 1)]
     ]
 
@@ -1405,8 +1416,9 @@ def rotate_data(coords, angle):
 
     for idx in range(0, len(angle)):
         if angle[idx] != 0:
-            coords = apply_matrix(rotate[idx], angle[idx], coords)
+            translated_point = apply_matrix(rotate[idx], angle[idx], translated_point)
 
+    coords = sum_vectors(offset, translated_point)
 
     return coords
 
