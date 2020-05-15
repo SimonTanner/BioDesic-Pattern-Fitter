@@ -245,6 +245,21 @@ def move_screen_points(screen_points, mouse_rel_motion):
     print("------------------------------------------------------")
     return moved_points
 
+def display_cut_lines(display, int_faces, angle, centre_point, scale, mid_z,
+    screen_height, screen_width, mouse_rel_pos):
+    for i in int_faces:
+        cutp1 = i[1][0][2]
+        cutp2 = i[1][1][2]
+        cutp1 = rotate_data(cutp1, angle, centre_point)
+        cutp1 = screen_point_convertor(cutp1, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
+        cutp2 = rotate_data(cutp2, angle, centre_point)
+        cutp2 = screen_point_convertor(cutp2, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
+
+        pygame.draw.circle(display, (50, 255, 50), cutp1, 5, 2)
+        pygame.draw.circle(display, (50, 255, 50), cutp2, 5, 2)
+
+        pygame.draw.line(display, (255, 50, 50), cutp1, cutp2)
+
 
 
 class SeperatedFaces:
@@ -682,19 +697,10 @@ def create_screen(data_list, screen_height, screen_width):
                 text3('offset: ' + str(test_data['delta_h']),[0, 80], [255, 255, 255])
                 text3('total angle: ' + str(test_data['total angle']), [0, 100], [255, 255, 255])
 
+            # If there is a cut through display intersection lines
             if len(int_faces_1) > 0 and len(points) > 0:
-                for i in int_faces_1:
-                    cutp1 = i[1][0][2]
-                    cutp2 = i[1][1][2]
-                    cutp1 = rotate_data(cutp1, angle, centre_point)
-                    cutp1 = screen_point_convertor(cutp1, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
-                    cutp2 = rotate_data(cutp2, angle, centre_point)
-                    cutp2 = screen_point_convertor(cutp2, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
-
-                    pygame.draw.circle(DISPLAYSURF, (50, 255, 50), cutp1, 5, 2)
-                    pygame.draw.circle(DISPLAYSURF, (50, 255, 50), cutp2, 5, 2)
-
-                    pygame.draw.line(DISPLAYSURF, (255, 50, 50), cutp1, cutp2)
+                display_cut_lines(DISPLAYSURF, int_faces_1, angle, centre_point, scale, mid_z,
+                screen_height, screen_width, mouse_rel_pos)
 
             pygame.display.flip()
             FPSClock.tick(FPS)
