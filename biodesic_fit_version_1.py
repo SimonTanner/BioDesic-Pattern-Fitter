@@ -75,9 +75,6 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
             vert_no = data[2][i][n]
             
             points = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
-            # print("Point before rotation: " + str(data[1][(vert_no - 1)]))
-            # print("Point after rotation: " + str(points))
-            # sys.exit()
             points = screen_point_convertor(points, scale, centre_point[2], screen_height, screen_width, rel_pos)
             normal = eqns_2[i][4]
             normal = rotate_data(normal, angle)
@@ -121,30 +118,32 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
                         pygame.draw.line(display, edge_colour, polygon[k], polygon[k+1], 1)
 
         if show_av_norms == True:
-            avg_normals = draw_avg_normals(data, eqns_2, scale, angle, mid_z, display, screen_height, screen_width, avg_normals, rel_pos)
+            avg_normals = draw_avg_normals(data, eqns_2, scale, angle, centre_point, mid_z, display, screen_height, screen_width, avg_normals, rel_pos)
         # if show_face_no is True:
         #     display.blit(new_display, (0, 0))
     return scale, mid_z, polygon_list, avg_normals
 
-def draw_avg_normals(data, eqns, scale, angle, mid_z, display, screen_height,
+def draw_avg_normals(data, eqns, scale, angle, centre_point, mid_z, display, screen_height,
 screen_width, avg_normals=None, rel_pos=(0, 0)):
     """
     Displays the average normal of faces surrounding a vertex
     """
     normal_colour = (255, 255, 255)
+    normal_disp_size = 30
+
     if avg_normals == None:
         avg_normals = calculate_all_avg_normals(data, eqns)
     for i in range(0, len(avg_normals)):
-        av_norm_rotated = rotate_data(avg_normals[i], angle)
+        av_norm_rotated = rotate_data(avg_normals[i], angle, centre_point)
         if av_norm_rotated[1] >= 0:
             p1 = data[1][i]
-            normal = map(lambda a: a * 30 / scale , avg_normals[i])
+            normal = map(lambda a: a * normal_disp_size / scale , avg_normals[i])
             p2 = map(lambda a, b: a + b, p1, normal)
 
-            p1 = rotate_data(p1, angle)
+            p1 = rotate_data(p1, angle, centre_point)
             p1 = screen_point_convertor(p1, scale, mid_z, screen_height, screen_width, rel_pos)
 
-            p2 = rotate_data(p2, angle)
+            p2 = rotate_data(p2, angle, centre_point)
             p2 = screen_point_convertor(p2, scale, mid_z, screen_height, screen_width, rel_pos)
 
             pygame.draw.line(display, normal_colour, p1, p2, 1)
@@ -543,7 +542,7 @@ def create_screen(data_list, screen_height, screen_width):
                         else:
                             plane = cut_plane
 
-                        data_list_copy, avg_normals = move_vertices(int_faces_1, plane, measurement_2, data_list_copy, connected_faces)
+                        data_list_copy, avg_normals = offset_vertices(int_faces_1, plane, measurement_2, data_list_copy, connected_faces)
                         # check_measurement = True
 
                     elif event.key == K_BACKSPACE and len(measurement_list) > 1:

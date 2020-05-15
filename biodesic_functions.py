@@ -337,8 +337,8 @@ def inv_eqn(equation):
 
 def plane_intersect(plane, eqns):
     """
-    Calculates the point of intersection between a plane and a line and returns the coords
-    of this point.
+    Calculates the point of intersection between a plane and line and returns its coords
+
     eqns in form of:
         dy/dx = eqns[0][0]
         dz/dx = eqns[1][0]
@@ -385,7 +385,7 @@ def plane_intersect(plane, eqns):
             elif i == 2:
                 point[1] = eqns[i][1]
 
-    # 2nd test to see if the plane is of the form y = constant (i.e. if plane is perpendicular to an axis)
+    # 2nd test to see if the plane is of the form x, y or z = constant (i.e. if plane is perpendicular to an axis)
     for i in range(0, len(plane) - 2):
         for k in range(1, len(plane) - 1):
             if plane[i] == 0.0 and plane[k] == 0.0 and i != k:
@@ -1237,7 +1237,7 @@ def plane_from_vector(vector, vert_1):
     return plane_eqn
 
 
-def move_vertices(int_faces, plane_eqn, measurement_2, data, connected_faces=None):
+def offset_vertices(int_faces, plane_eqn, measurement_2, data, connected_faces=None):
     """
     Moves vertices surrounding the cut plane to resize the model
     """
