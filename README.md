@@ -37,7 +37,11 @@ Once the program's running you can click two points either side of the part of t
 
 **CTRL + E** - Displays the edges of the pattern before you made any changes allowing you to compare the two
 
-**Left** & **Right** arrow keys rotate the model
+**Left** & **Right** arrow keys rotate the model left & right
+
+**Up** & **Down** arrow keys rotate the model up & down
+
+**+** & **-** keys zoom in and out
 
 **F** - Front view
 
@@ -46,6 +50,8 @@ Once the program's running you can click two points either side of the part of t
 **R** - Right view
 
 **B** - Back view
+
+**CTRL + R** resets the zoom and re-centres the model to the view
 
 **C** - Clears the cut points
 
@@ -57,4 +63,4 @@ Once the program's running you can click two points either side of the part of t
 
 **N** - Toggles the display of the average normal at each vertex
 
-**ESC** - Brings up the quit menu
+**ESC** or **CTRL + C** - Brings up the quit menu
