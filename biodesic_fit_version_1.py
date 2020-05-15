@@ -101,7 +101,6 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
             colour = int(255 * i / len(data[2]))
             colour_1 = int(200 * dot_prod)
             colour_2 = int(255 * dot_prod)
-            # print("colour 1: " + str(colour_1) + ", colour 2: " + str(colour_2))
             pygame.draw.polygon(display, (255 , colour_2, 255 - colour_1), polygon, 0)
 
             if show_face_no == True: 
@@ -158,7 +157,6 @@ screen_height, screen_width, rel_pos=(0, 0)):
     """
 
     polygon_list = []
-    centre_point = rotate_data(centre_point, angle)
     eqns_2 = equations(data)
     colour_black_grey = (50, 50, 50)
 
@@ -167,10 +165,10 @@ screen_height, screen_width, rel_pos=(0, 0)):
         for n in range(0, len(data[2][i])):
 
             vert_no = data[2][i][n]
-            points = rotate_data(data[1][(vert_no - 1)], angle)
+            points = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
             points = screen_point_convertor(points, scale, mid_z, screen_height, screen_width, rel_pos)
             normals = eqns_2[i][4]
-            normals = rotate_data(normals, angle)
+            normals = rotate_data(normals, angle, centre_point)
 
             if normals[1] > 0:
                 polygon.append(points)
@@ -208,7 +206,7 @@ def quit_game(data, save):
 
 def calculate_display_sizes(screen_height, screen_width, data):
     """
-    Calculates the scale that the model should be
+    Calculates the scale that the model should be displayed at
     """
     height = float(screen_height * .95)
     width = float(screen_width * .95)
