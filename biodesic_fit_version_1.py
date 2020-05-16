@@ -39,7 +39,7 @@ def screen_point_convertor(point, scale, mid_z, screen_height, screen_width, rel
     return point
 
 
-def data_point_screen_convertor(point, scale, mid_z, screen_height, screen_width, rel_pos=(0, 0)):
+def data_point_screen_convertor(point, scale, mid_z, centre_point, angle, screen_height, screen_width, rel_pos=(0, 0)):
     """
     Converts (x, y) screen coordinates back to real (x, y, z) coords
     """
@@ -48,6 +48,8 @@ def data_point_screen_convertor(point, scale, mid_z, screen_height, screen_width
     z_coord = mid_z + (screen_height / 2 + rel_pos[1] - point[1]) / scale
     point.append(z_coord)
     point[1] = 0.0
+
+    point = rotate_data(point, angle, centre_point)
 
     return point
 
@@ -241,7 +243,7 @@ def move_screen_points(screen_points, mouse_rel_motion):
         moved_points.append(moved_point)
     return moved_points
 
-def display_cut_lines(display, int_faces, angle, centre_point, scale, mid_z,
+def display_slice_outlines(display, int_faces, angle, centre_point, scale, mid_z,
     screen_height, screen_width, mouse_rel_pos):
     for i in int_faces:
         cutp1 = i[1][0][2]
@@ -253,7 +255,6 @@ def display_cut_lines(display, int_faces, angle, centre_point, scale, mid_z,
 
         pygame.draw.circle(display, (50, 255, 50), cutp1, 5, 2)
         pygame.draw.circle(display, (50, 255, 50), cutp2, 5, 2)
-
         pygame.draw.line(display, (255, 50, 50), cutp1, cutp2)
 
 
@@ -294,9 +295,11 @@ class SeperatedFaces:
 
 
 def create_screen(data_list, screen_height, screen_width):
+    # Calculate the centre point coordinate of the model
     centre_point = calc_centre(data_list[1])
     data_list_copy = copy.deepcopy(data_list)
 
+    # Load icon
     logo_rel_path = 'logo/Bio-Logo-v1.jpg'
     logo_path = os.path.join(os.getcwd(), logo_rel_path)
     logo = pygame.image.load(logo_path)
@@ -308,10 +311,14 @@ def create_screen(data_list, screen_height, screen_width):
         32
     )
 
+    # Set name in title bar
     pygame.display.set_caption('BioDesic Pattern Fitter')
     background_colour = (50, 50 ,50)
     pygame.key.set_repeat(50, 10)
 
+    display_data = DisplayData(DISPLAYSURF)
+
+    # Consts for rotational view angles
     view_angles = {
         'front': (0, 0, 180),
         'back': (0, 0, 0),
@@ -336,13 +343,13 @@ def create_screen(data_list, screen_height, screen_width):
         angle = map(lambda a, b: a + const * b, angle, delta_ang)
         return angle
 
-
-    points = []
     SHIFT = False
     CONTROL = False
 
-    coords = []
-    measurement_2 = 0.0
+    points = [] # Screen coords of click points [x, y]
+    coords = [] # Coordinates of click points in model space
+    measurement = 0
+    input_measurement = 0.0
     measurement_list = [0]
 
     quit_scr = False
@@ -379,12 +386,14 @@ def create_screen(data_list, screen_height, screen_width):
     mouse_dwn_delta = 0
     mouse_rel_pos = [0, 0]
 
+    # Toggle boolean vars
     flip_bool = {True: False, False: True}
 
     while True:
         try:
             DISPLAYSURF.fill(background_colour)
 
+            # Draw geometry of model
             scale, mid_z, _polygon_list, avg_normals = display_model(
                 data_list_copy,
                 DISPLAYSURF,
@@ -403,8 +412,7 @@ def create_screen(data_list, screen_height, screen_width):
 
             clicked = False
 
-            # check_measurement = False
-
+            # Draw unedited model edges
             if show_unedited == True:
                 draw_edges(
                     data_list,
@@ -420,19 +428,17 @@ def create_screen(data_list, screen_height, screen_width):
                 )
 
             if quit_scr == True:
-                quit_screen(screen_height, screen_width)
-
-            measurement_2 = convert_ui_integer_input(measurement_list)
-            measurement_text2(measurement_2, [0, 20])
+                display_data.quit_screen()
 
             if len(coords) > 0:
-                text1(coords[-1], [0, 60])
-                text1(coords[-2], [0, 40])
+                display_data.text1(coords[-1], [0, 60])
+                display_data.text1(coords[-2], [0, 40])
 
             for event in pygame.event.get():
                 if event.type == VIDEORESIZE:
                     screen_height, screen_width = event.h, event.w
-                    scale, mid_z = calculate_display_sizes(screen_height, screen_width, data_list_copy)
+                    # to reset the scale when resizing add scale var below
+                    _, mid_z = calculate_display_sizes(screen_height, screen_width, data_list_copy)
                     DISPLAYSURF = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE | pygame.DOUBLEBUF, 32)
 
                 if event.type == QUIT:
@@ -551,7 +557,8 @@ def create_screen(data_list, screen_height, screen_width):
                         else:
                             plane = cut_plane
 
-                        data_list_copy, avg_normals = offset_vertices(int_faces_1, plane, measurement_2, data_list_copy, connected_faces)
+                        # Move vertices to fit measurement entered
+                        data_list_copy, avg_normals = offset_vertices(int_faces_1, plane, input_measurement, data_list_copy, connected_faces)
                         # check_measurement = True
 
                     elif event.key == K_BACKSPACE and len(measurement_list) > 1:
@@ -615,34 +622,38 @@ def create_screen(data_list, screen_height, screen_width):
 
 
             for i in range(0, len(points)):
+                # Draw points that have been clicked on screen
                 for n in range(0, len(points[i])):
                     pygame.draw.circle(DISPLAYSURF, (255, 50, 50), points[i][n], 5, 2)
 
 
             if len(points) > 0:
                 print(points)
+                print(mouse_rel_pos)
+                print(coords)
                 # points = move_screen_points(points, mouse_rel_pos)
+                updated_points = []
+                for coord in coords:
+                    screen_coord = screen_point_convertor(
+                        coord, scale, mid_z, screen_height, screen_width, rel_pos=(0, 0)
+                    )
+                    updated_points.append(screen_coord)
+
+                # sys.exit()
+                # points = updated_points
                 
                 if len(points[-1]) % 2 == 0:
                     for i in range(0, len(points)):
                         pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i][0], points[i][1])
-
                         if clicked == True:
-                            coords.append(
-                                data_point_screen_convertor(
-                                    points[-1][0],
-                                    scale,
-                                    mid_z,
-                                    screen_height,
-                                    screen_width,
-                                    mouse_rel_pos
-                                )
-                            )
-                            coords.append(
-                                data_point_screen_convertor(
-                                        points[-1][1],
+                            for i in range(0, len(points[-1])):
+                                coords.append(
+                                    data_point_screen_convertor(
+                                        points[-1][i],
                                         scale,
                                         mid_z,
+                                        centre_point,
+                                        angle,
                                         screen_height,
                                         screen_width,
                                         mouse_rel_pos
@@ -651,6 +662,7 @@ def create_screen(data_list, screen_height, screen_width):
 
                     if len(cut_plane_2) == 0 or clicked == True or align_to_plane == False:
                         try:
+                            # Calculate points of intersection between the cut plane and model
                             int_faces_1, cut_plane = get_intersect_face_plane(coords[-2], coords[-1], data_list_copy, [])
 
                         except IndexError as error:
@@ -670,33 +682,42 @@ def create_screen(data_list, screen_height, screen_width):
                         points.append([p1, p2])
                         int_faces_1 = get_intersect_face_plane(coord1, coord2, data_list_copy, cut_plane_2)[0]
                         print(len(int_faces_1))
+
                         plane_aligned = True
 
                     elif align_to_plane == True and len(cut_plane_2) > 0:
                         print("align_to_plane: True, cut_plane: True")
                         print(cut_plane_2)
                         int_faces_1 = get_intersect_face_plane(coords[-2], coords[-1], data_list_copy, cut_plane_2)[0]
+
                         plane_aligned = True
                         print(len(int_faces_1))
 
                     measurement = calc_measurement(int_faces_1)
-                    measurement_text(measurement)
+                    # display_data.update_value('measurement', measurement)
 
                 else:
                     for i in range(0, len(points) - 1):
                         pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i][0], points[i][1])
 
                 measurement = calc_measurement(int_faces_1)
-                measurement_text(measurement)
+                # display_data.update_value('measurement', measurement)
 
-            if len(test_data) > 0:
-                text3('offset: ' + str(test_data['delta_h']),[0, 80], [255, 255, 255])
-                text3('total angle: ' + str(test_data['total angle']), [0, 100], [255, 255, 255])
+            # if len(test_data) > 0:
+            #     display_data.text3('offset: ' + str(test_data['delta_h']),[0, 80], [255, 255, 255])
+            #     display_data.text3('total angle: ' + str(test_data['total angle']), [0, 100], [255, 255, 255])
 
             # If there is a cut through display intersection lines
             if len(int_faces_1) > 0 and len(points) > 0:
-                display_cut_lines(DISPLAYSURF, int_faces_1, angle, centre_point, scale, mid_z,
-                screen_height, screen_width, mouse_rel_pos)
+                display_slice_outlines(
+                    DISPLAYSURF, int_faces_1, angle, centre_point, scale, mid_z,
+                    screen_height, screen_width, mouse_rel_pos
+                )
+
+            input_measurement = convert_ui_integer_input(measurement_list)
+            display_data.update_value('measurement', measurement)
+            display_data.update_value('new_measurement', input_measurement)
+            display_data.display()
 
             pygame.display.flip()
             FPSClock.tick(FPS)
