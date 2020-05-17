@@ -9,7 +9,7 @@ class DisplayData():
         self.box_edge_grey = list(map(lambda a: a + self.box_edge_grey_offset, self.box_grey))
         self.text_colour = [0, 0, 0]
         self.surface = surface
-        self.font = pygame.font.match_font('bitstreamverasansmono')
+        self.font = pygame.font.match_font('dejavusans')
         self.font_size = 13
         self.large_font_size = 18
         self.screen_height = self.surface.get_height()
@@ -23,6 +23,14 @@ class DisplayData():
             'measurement': {
                 'text': ['measurement: ', 'mm'],
                 'args': [0]
+            },
+            'coordinates_1': {
+                'text': ['point 1: '],
+                'args': []
+            },
+            'coordinates_2': {
+                'text': ['point 2: '],
+                'args': []
             }
         }
         self.add_text_data()
@@ -32,8 +40,17 @@ class DisplayData():
         self.draw_text_boxes([0, 0])
 
     def update_value(self, name, value):
-        self.text_items[name]['args'] = [int(value)]
+        if isinstance(value, (list, tuple)):
+            value = list(map(lambda a: round(a, 0), value))
+            value = str(value).strip('[]()')
+        elif isinstance(value, float):
+            value = int(value)
+
+        self.text_items[name]['args'] = [value]
         self.add_text_data()
+
+
+    # def update_text(self, name, text)
 
 
     def measurement_text2(self, measurement, screen_coord):

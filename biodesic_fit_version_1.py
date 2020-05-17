@@ -316,6 +316,7 @@ def create_screen(data_list, screen_height, screen_width):
     background_colour = (50, 50 ,50)
     pygame.key.set_repeat(50, 10)
 
+    # Instantiate text box class
     display_data = DisplayData(DISPLAYSURF)
 
     # Consts for rotational view angles
@@ -355,11 +356,11 @@ def create_screen(data_list, screen_height, screen_width):
     quit_scr = False
     quitting = False
 
-    faces_vis = False
-    norm_vis = False
-    show_edges = False
-    show_unedited = False
-    align_to_plane = False
+    faces_vis = False   # Display face nos
+    norm_vis = False    # Display normals
+    show_edges = False  # Display edges
+    show_unedited = False   # Display unedited model edges
+    align_to_plane = False  # Align slice plane to geometry
     plane_aligned = False
     int_faces_1 = []
     test_data = {}
@@ -371,14 +372,14 @@ def create_screen(data_list, screen_height, screen_width):
     seperated_faces = SeperatedFaces(data_list_copy)
 
     initial_scale, mid_z = calculate_display_sizes(screen_height, screen_width, data_list_copy)
-    z = []
-    for i in data_list_copy[1]:
-        z.append(i[2])
-
-    print("Max z value = " + str(max(z)))
-    print("Min z value = " + str(min(z)))
-    print("Middle z value = " + str(mid_z))
     scale = initial_scale
+    # z = []
+    # for i in data_list_copy[1]:
+    #     z.append(i[2])
+
+    # print("Max z value = " + str(max(z)))
+    # print("Min z value = " + str(min(z)))
+    # print("Middle z value = " + str(mid_z))
 
     # Vars for handling mouse up & down events and moving objects on screen by dragging
     mouse_dwn_start = None
@@ -431,8 +432,8 @@ def create_screen(data_list, screen_height, screen_width):
                 display_data.quit_screen()
 
             if len(coords) > 0:
-                display_data.text1(coords[-1], [0, 60])
-                display_data.text1(coords[-2], [0, 40])
+                display_data.update_value('coordinates_1', coords[-1])
+                display_data.update_value('coordinates_2', coords[-2])
 
             for event in pygame.event.get():
                 if event.type == VIDEORESIZE:
@@ -476,11 +477,11 @@ def create_screen(data_list, screen_height, screen_width):
 
                     # Rotate view clockwise about x axis
                     elif event.key == K_UP:
-                        angle = add_angles(angle, delta_ang_all['x'])
+                        angle = add_angles(angle, delta_ang_all['x'], True)
                     
                     # Rotate view counter-clockwise about x axis
                     elif event.key == K_DOWN:
-                        angle = add_angles(angle, delta_ang_all['x'], True)
+                        angle = add_angles(angle, delta_ang_all['x'])
 
                     elif event.key == K_f:
                         angle = list(view_angles['front'])
@@ -694,14 +695,12 @@ def create_screen(data_list, screen_height, screen_width):
                         print(len(int_faces_1))
 
                     measurement = calc_measurement(int_faces_1)
-                    # display_data.update_value('measurement', measurement)
 
                 else:
                     for i in range(0, len(points) - 1):
                         pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i][0], points[i][1])
 
                 measurement = calc_measurement(int_faces_1)
-                # display_data.update_value('measurement', measurement)
 
             # if len(test_data) > 0:
             #     display_data.text3('offset: ' + str(test_data['delta_h']),[0, 80], [255, 255, 255])
@@ -750,8 +749,8 @@ if __name__ == '__main__':
         debug = args[1].split("=")
     else:
         debug = False
-    print(debug)
+    # print(debug)
     if debug == "True":
         debug = True
-    
+
     main(debug)
