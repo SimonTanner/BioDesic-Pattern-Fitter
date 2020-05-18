@@ -57,6 +57,22 @@ def data_point_screen_convertor(point, scale, mid_z, centre_point, angle, screen
 def sort_polygons(polygons):
     return polygons[2][1]
 
+def calc_light_colour(vector, face_normal, data, colour, intensity=1):
+    """
+    Calculates the colour of a surface given a light direction vector & base colour
+    """
+    light_dir_scale = math.sqrt(sum(vector))
+    light_dir_normal = list(map(lambda c: c / light_dir_scale, vector))
+    dot_prod = abs(sum(map(lambda a, b: a * b, face_normal, light_dir_normal))) ** 2
+    colour = list(map(lambda a: light_colour(dot_prod, a, intensity), colour))
+
+    return colour
+
+def light_colour(dot_prod, value, intensity):
+    colour = int(dot_prod * value * intensity)
+    if colour > 255:
+        colour = 255
+    return colour
 
 def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no, show_av_norms,
                   show_edges, screen_height, screen_width, avg_normals=None, rel_pos=(0, 0)):
@@ -66,8 +82,9 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
     polygon_list = []
     centre_point = rotate_data(centre_point, angle, centre_point)
     eqns_2 = equations(data)
-    y_normal = [0.0, 1.0, 0.0]
+    light_dir = [0.5, 1.0, 0.0]
     edge_colour = (200, 0, 0)   # Red
+    face_colour = (255, 40, 180)
 
     for i in range(0, len(data[2])):
         polygon = []
@@ -99,17 +116,15 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
         normal = polygon_list[i][3]
 
         if len(polygon) > 0:
-            dot_prod = abs(sum(map(lambda a, b: a * b, normal, y_normal))) ** 2
             colour = int(255 * i / len(data[2]))
-            colour_1 = int(200 * dot_prod)
-            colour_2 = int(255 * dot_prod)
-            pygame.draw.polygon(display, (255 , colour_2, 255 - colour_1), polygon, 0)
+            face_light_colour = calc_light_colour(light_dir, normal, data, face_colour, 5)
+            pygame.draw.polygon(display, face_light_colour, polygon, 0)
 
             if show_face_no == True: 
                 polygon_center = calc_face_centre(face_no, data)
                 polygon_center = rotate_data(polygon_center, angle, centre_point)
                 polygon_center = screen_point_convertor(polygon_center, scale, mid_z, screen_height, screen_width, rel_pos)
-                text2((face_no+1), polygon_center, (255, colour, 255 - colour))
+                simple_text(display, (face_no+1), polygon_center, (255, colour, 255 - colour))
 
             if show_edges == True:
                 for k in range(0, len(polygon)):
@@ -125,7 +140,7 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
     return scale, mid_z, polygon_list, avg_normals
 
 def draw_avg_normals(data, eqns, scale, angle, centre_point, mid_z, display, screen_height,
-screen_width, avg_normals=None, rel_pos=(0, 0)):
+    screen_width, avg_normals=None, rel_pos=(0, 0)):
     """
     Displays the average normal of faces surrounding a vertex
     """
@@ -170,12 +185,10 @@ screen_height, screen_width, rel_pos=(0, 0)):
             points = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
             points = screen_point_convertor(points, scale, mid_z, screen_height, screen_width, rel_pos)
             normals = eqns_2[i][4]
-            normals = rotate_data(normals, angle, centre_point)
+            normals = rotate_data(normals, angle)
 
             if normals[1] > 0:
                 polygon.append(points)
-
-        colour = int(255 * i / len(data[2]))
 
         if len(polygon) > 0:
             for k in range(0, len(polygon)):
