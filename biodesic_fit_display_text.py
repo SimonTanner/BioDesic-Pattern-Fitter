@@ -15,6 +15,11 @@ class DisplayData():
         self.screen_height = self.surface.get_height()
         self.screen_width = self.surface.get_width()
         self.text_boxes = {}
+        self._init_text_values()
+        self.add_text_data()
+        self.draw_text_boxes([0, 0])
+
+    def _init_text_values(self):
         self.text_items = {
             'new_measurement': {
                 'text': ['new measurement: ', 'mm'],
@@ -33,8 +38,9 @@ class DisplayData():
                 'args': []
             }
         }
-        self.add_text_data()
-        self.draw_text_boxes([0, 20])
+
+    def clear_values(self):
+        self._init_text_values()
 
     def display(self):
         self.draw_text_boxes([0, 0])
@@ -48,34 +54,6 @@ class DisplayData():
 
         self.text_items[name]['args'] = [value]
         self.add_text_data()
-
-
-    # def update_text(self, name, text)
-
-
-    def measurement_text2(self, measurement, screen_coord):
-        screen_offset = 20
-        box_offset = 10
-
-        measurement = str(measurement)
-        fontobj = pygame.font.Font(self.font, self.font_size)
-        textobj = fontobj.render('new measurement: ' + measurement + 'mm', True, self.text_colour, self.box_grey)
-        text_surf = textobj.get_rect()
-        bounding_box = text_surf.inflate(screen_offset, screen_offset)
-        offset = screen_offset - box_offset
-        text_surf.topleft = ( (screen_offset + screen_coord[0]), (screen_offset + screen_coord[1]) )
-        bounding_box.topleft = ( (offset + screen_coord[0]), (offset + screen_coord[1]) )
-        # print(text_surf)
-        # print(bounding_box)
-        # print(bounding_box.topleft)
-        # print(bounding_box.y)
-        # print(dir(text_surf))
-        # sys.exit()
-
-        
-
-        self.draw_box(bounding_box)
-        self.surface.blit(textobj, text_surf)
 
     def _create_text(self, text, args):
         display_text = ""
@@ -134,48 +112,6 @@ class DisplayData():
         pygame.draw.rect(self.surface, self.box_grey, bounding_box)
         pygame.draw.lines(self.surface, self.box_edge_grey, False, box_coords)
 
-    def measurement_text(self, measurement):
-        measurement = int(measurement)
-        measurement = str(measurement)
-
-        fontobj = pygame.font.Font(self.font, self.font_size)
-        textobj = fontobj.render('Measurement: ' + measurement + 'mm', True, self.text_colour, self.box_grey)
-        text_surf = textobj.get_rect()
-        text_surf.topleft = ( (20), (20) )
-
-        fontobj1 = pygame.font.Font(self.font, self.font_size)
-        textobj1 = fontobj1.render('Edit Measurement', True, self.text_colour, self.box_grey)
-        text_surf1 = textobj1.get_rect()
-        text_surf1.topright = ( (self.screen_width - 20), (20) )
-
-        offset = [-5, -5, 5, 5]
-        box = map(lambda a, b: a + b, offset, text_surf1)
-        pygame.draw.rect(self.surface, (255, 0, 255), box, 0)
-        self.surface.blit(textobj, text_surf)
-        self.surface.blit(textobj1, text_surf1)
-
-    def text1(self, text, screen_coord):
-        text = str(map(int, text))
-
-        fontobj = pygame.font.Font(self.font, self.font_size)
-        textobj = fontobj.render(text + ' mm', True, self.text_colour, self.box_grey)
-        text_surf = textobj.get_rect()
-        text_surf.topleft = ((20 + screen_coord[0]), (20 + screen_coord[1]))
-
-        self.surface.blit(textobj, text_surf)
-
-
-    def text2(self, text, screen_coord, colour):
-        text = str(text)
-        colour = None
-        fontobj = pygame.font.Font(self.font, self.font_size)
-        textobj = fontobj.render(text, True, self.box_grey)
-        text_surf = textobj.get_rect()
-        text_surf.center = ((screen_coord[0]), (screen_coord[1]))
-
-        self.surface.blit(textobj, text_surf)
-
-
     def text3(self, text, screen_coord, colour):
         text = str(text)
 
@@ -207,6 +143,16 @@ class DisplayData():
     def get_rect_points(self, rect):
         return [rect.topleft, rect.topright, rect.bottomright, rect.bottomleft]
 
+def simple_text(surface, text, coords, colour):
+    text = str(text)
+    # colour = None
+    font = pygame.font.match_font('dejavusans')
+    fontobj = pygame.font.Font(font, 12)
+    textobj = fontobj.render(text, True, [50, 50, 50])
+    text_surf = textobj.get_rect()
+    text_surf.center = ((coords[0]), (coords[1]))
+
+    surface.blit(textobj, text_surf)
 
 def convert_ui_integer_input(input_list):
     """
