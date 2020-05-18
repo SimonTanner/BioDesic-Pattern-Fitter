@@ -201,13 +201,13 @@ screen_height, screen_width, rel_pos=(0, 0)):
         polygon_list.append(polygon)
 
 
-def draw_cut_lines(points):
+def draw_cut_lines(display, points):
     point_count = len(points)
     if len(points) % 2 != 0:
         point_count -= 1
 
     for i in range(0, point_count, 2):
-        pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i], points[i + 1])
+        pygame.draw.line(display, (255, 50, 50), points[i], points[i + 1])
 
 
 
@@ -258,6 +258,7 @@ def move_screen_points(screen_points, mouse_rel_motion):
 
 def display_slice_outlines(display, int_faces, angle, centre_point, scale, mid_z,
     screen_height, screen_width, mouse_rel_pos):
+    line_colour, circle_colour = (255, 50, 50), (50, 255, 50)
     for i in int_faces:
         cutp1 = i[1][0][2]
         cutp2 = i[1][1][2]
@@ -266,10 +267,9 @@ def display_slice_outlines(display, int_faces, angle, centre_point, scale, mid_z
         cutp2 = rotate_data(cutp2, angle, centre_point)
         cutp2 = screen_point_convertor(cutp2, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
 
-        pygame.draw.circle(display, (50, 255, 50), cutp1, 5, 2)
-        pygame.draw.circle(display, (50, 255, 50), cutp2, 5, 2)
-        pygame.draw.line(display, (255, 50, 50), cutp1, cutp2)
-
+        pygame.draw.circle(display, circle_colour, cutp1, 5, 2)
+        pygame.draw.circle(display, circle_colour, cutp2, 5, 2)
+        pygame.draw.line(display, line_colour, cutp1, cutp2)
 
 
 class SeperatedFaces:
@@ -402,6 +402,8 @@ def create_screen(data_list, screen_height, screen_width):
 
     # Toggle boolean vars
     flip_bool = {True: False, False: True}
+
+    cut_point_colour = (0, 100, 250)
 
     while True:
         try:
@@ -638,7 +640,7 @@ def create_screen(data_list, screen_height, screen_width):
             for i in range(0, len(points)):
                 # Draw points that have been clicked on screen
                 for n in range(0, len(points[i])):
-                    pygame.draw.circle(DISPLAYSURF, (255, 50, 50), points[i][n], 5, 2)
+                    pygame.draw.circle(DISPLAYSURF, cut_point_colour, points[i][n], 5, 2)
 
 
             if len(points) > 0:
@@ -658,7 +660,7 @@ def create_screen(data_list, screen_height, screen_width):
                 
                 if len(points[-1]) % 2 == 0:
                     for i in range(0, len(points)):
-                        pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i][0], points[i][1])
+                        pygame.draw.line(DISPLAYSURF, cut_point_colour, points[i][0], points[i][1])
                         if clicked == True:
                             for i in range(0, len(points[-1])):
                                 coords.append(
@@ -674,7 +676,7 @@ def create_screen(data_list, screen_height, screen_width):
                                     )
                                 )
 
-                    if len(cut_plane_2) == 0 or clicked == True or align_to_plane == False:
+                    if (len(cut_plane_2) == 0 or clicked == True) and align_to_plane == False:
                         try:
                             # Calculate points of intersection between the cut plane and model
                             int_faces_1, cut_plane = get_intersect_face_plane(coords[-2], coords[-1], data_list_copy, [])
@@ -711,7 +713,7 @@ def create_screen(data_list, screen_height, screen_width):
 
                 else:
                     for i in range(0, len(points) - 1):
-                        pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i][0], points[i][1])
+                        pygame.draw.line(DISPLAYSURF, cut_point_colour, points[i][0], points[i][1])
 
                 measurement = calc_measurement(int_faces_1)
 
@@ -729,6 +731,7 @@ def create_screen(data_list, screen_height, screen_width):
             input_measurement = convert_ui_integer_input(measurement_list)
             display_data.update_value('measurement', measurement)
             display_data.update_value('new_measurement', input_measurement)
+            display_data.update_angle(angle)
             display_data.display()
 
             pygame.display.flip()

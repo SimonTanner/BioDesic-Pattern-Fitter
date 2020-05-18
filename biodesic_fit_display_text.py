@@ -1,4 +1,4 @@
-import pygame, sys
+import pygame, sys, collections
 from pygame.locals import *
 
 class DisplayData():
@@ -20,13 +20,13 @@ class DisplayData():
         self.draw_text_boxes([0, 0])
 
     def _init_text_values(self):
-        self.text_items = {
-            'new_measurement': {
-                'text': ['new measurement: ', 'mm'],
-                'args': [0]
-            },
+        self.text_items = collections.OrderedDict({
             'measurement': {
                 'text': ['measurement: ', 'mm'],
+                'args': [0]
+            },
+            'new_measurement': {
+                'text': ['new measurement: ', 'mm'],
                 'args': [0]
             },
             'coordinates_1': {
@@ -36,8 +36,20 @@ class DisplayData():
             'coordinates_2': {
                 'text': ['point 2: '],
                 'args': []
+            },
+            'ang_x': {
+                'text': ['x angle: ', ' deg'],
+                'args': []
+            },
+            'ang_y': {
+                'text': ['y angle: ', ' deg'],
+                'args': []
+            },
+            'ang_z': {
+                'text': ['z angle: ', ' deg'],
+                'args': []
             }
-        }
+        })
 
     def clear_values(self):
         self._init_text_values()
@@ -54,6 +66,11 @@ class DisplayData():
 
         self.text_items[name]['args'] = [value]
         self.add_text_data()
+    
+    def update_angle(self, angle):
+        keys = ['ang_x', 'ang_y', 'ang_z']
+        for idx in range(0, len(keys)):
+            self.update_value(keys[idx], angle[idx])
 
     def _create_text(self, text, args):
         display_text = ""
