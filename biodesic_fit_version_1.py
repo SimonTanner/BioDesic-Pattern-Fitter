@@ -218,6 +218,30 @@ def quit_game(data, save):
     pygame.quit()
     sys.exit()
 
+def draw_axes(display, angle):
+    """
+    Draws the x, y, z axes on screen
+    """
+    colour = (0, 0, 0)
+    size = 50
+    offset = 50
+    axes = ({'x': (-size, 0, 0)}, {'y': (0, size, 0)}, {'z': (0, 0, size)})
+    screen_dims = display.get_size()
+    screen_offset = (2 * offset, offset)
+    screen_position = sum_vectors(screen_dims, screen_offset, True)
+    # print(screen_position)
+    for axis in axes:
+        name = axis.keys()[0]
+        coords = axis.values()[0]
+        rotated_coords = rotate_data(coords, angle)
+        del(rotated_coords[1])
+        position = sum_vectors(screen_position, rotated_coords, True)
+        # print(position)
+        simple_text(display, name, position, colour)
+        pygame.draw.line(display, colour, screen_position, position)
+    # sys.exit()
+
+
 
 def calculate_display_sizes(screen_height, screen_width, data):
     """
@@ -355,6 +379,7 @@ def create_screen(data_list, screen_height, screen_width):
         if neg:
             const = -1
         angle = map(lambda a, b: a + const * b, angle, delta_ang)
+
         return angle
 
     SHIFT = False
@@ -408,6 +433,8 @@ def create_screen(data_list, screen_height, screen_width):
     while True:
         try:
             DISPLAYSURF.fill(background_colour)
+
+            draw_axes(DISPLAYSURF, angle)
 
             # Draw geometry of model
             scale, mid_z, _polygon_list, avg_normals = display_model(
@@ -481,6 +508,8 @@ def create_screen(data_list, screen_height, screen_width):
                             cut_plane = []
                             cut_plane_2 = []
                             int_faces = []
+                            display_data.clear_values()
+                            measurement = 0
 
                     # Rotate view clockwise about z axis
                     elif event.key == K_LEFT:
