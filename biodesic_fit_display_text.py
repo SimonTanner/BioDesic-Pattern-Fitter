@@ -4,10 +4,10 @@ from pygame.locals import *
 class DisplayData():
 
     def __init__(self, surface):
-        self.box_grey = [150, 150, 150]
+        self.box_grey = (150, 150, 150)
+        self.text_colour = (0, 0, 0)
         self.box_edge_grey_offset = -50
         self.box_edge_grey = list(map(lambda a: a + self.box_edge_grey_offset, self.box_grey))
-        self.text_colour = [0, 0, 0]
         self.surface = surface
         self.font = pygame.font.match_font('dejavusans')
         self.font_size = 13
@@ -144,28 +144,29 @@ class DisplayData():
         if type(text) != 'str':
             text = str(text)
         fontobj = pygame.font.Font(self.font, self.large_font_size)
-        textobj = fontobj.render(text, True, colour, self.box_grey)
-        text_surf = textobj.get_rect()
+        text_obj = fontobj.render(text, True, colour, self.box_grey)
+        text_surf = text_obj.get_rect()
         text_surf.center = ( screen_coord[0], screen_coord[1] )
 
-        self.surface.blit(textobj, text_surf)
+        self.surface.blit(text_obj, text_surf)
+        # return text_obj, text_surf
 
 
     def quit_screen(self):
         text_pos = [int(self.screen_width / 2), int(self.screen_height / 2)]
-        self.quit_text('Would you like to save the new model?', text_pos, [255, 50, 50])
+        text_surf = self.quit_text('Would you like to save the new model?', text_pos, [255, 50, 50])
+        # box = text_surf.get_rect()
         text_pos_2 = map(lambda a, b: a + b, text_pos, [0, 40])
         self.quit_text('Enter Y/N or C for cancel', text_pos_2, [255, 50, 50])
 
     def get_rect_points(self, rect):
         return [rect.topleft, rect.topright, rect.bottomright, rect.bottomleft]
 
-def simple_text(surface, text, coords, colour):
+def simple_text(surface, text, coords, colour=[50, 50, 50]):
     text = str(text)
-    # colour = None
     font = pygame.font.match_font('dejavusans')
     fontobj = pygame.font.Font(font, 12)
-    textobj = fontobj.render(text, True, [50, 50, 50])
+    textobj = fontobj.render(text, True, colour)
     text_surf = textobj.get_rect()
     text_surf.center = ((coords[0]), (coords[1]))
 
