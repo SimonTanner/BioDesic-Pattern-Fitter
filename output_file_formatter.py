@@ -58,4 +58,4 @@ class OutputFormatter():
 
     def print_error_msg(self, err):
         print(self.__class__.__module__+ ".py" + ", " + self.__class__.__name__ + ":")
-        print(error)
+        print(err)
