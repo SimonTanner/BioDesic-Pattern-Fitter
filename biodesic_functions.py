@@ -1091,6 +1091,12 @@ def get_intersect_face_plane(coord_1, coord_2, data, aligned_plane):
 
     return int_faces, plane #, intersecting
 
+def print_error_msg(err, func):
+    print("-------------------------------------")
+    print("ERROR")
+    print(func.__module__+ ".py" + ", " + func.func_name + ":")
+    print(err)
+    print("-------------------------------------")
 
 
 def align_plane(int_faces, plane, data, coord1, coord2):
@@ -1101,9 +1107,9 @@ def align_plane(int_faces, plane, data, coord1, coord2):
         verts_above = []
         verts_below = []
         c1, c2 = coord1, coord2
-        normal_to_plane = plane[0:3]
-        mod_norm = math.sqrt(sum(map(lambda a: a**2, normal_to_plane)))
-        normal_to_plane = map(lambda a: a / mod_norm, normal_to_plane)
+        perp_vec_to_plane = plane[0:3]
+        mod_norm = math.sqrt(sum(map(lambda a: a**2, perp_vec_to_plane)))
+        normal_to_plane = map(lambda a: a / mod_norm, perp_vec_to_plane)
 
         for i in range(0, len(int_faces)):
             for n in range(0, len(int_faces[i][1])):
@@ -1141,7 +1147,7 @@ def align_plane(int_faces, plane, data, coord1, coord2):
     
     except Exception as error:
         if error:
-            print(error)
+            print_error_msg(error, align_plane)
     print("-------------------------------------")
     print("calculating aligned plane")
     print(plane)
