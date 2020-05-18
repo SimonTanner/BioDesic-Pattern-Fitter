@@ -13,8 +13,8 @@ def calc_planes(data):
 
         vec_1, vec_2 =  [], []
 
-        vec_1 = map(lambda a, b: a - b, vert_2, vert_1)
-        vec_2 = map(lambda a, b: a - b, vert_3, vert_1)
+        vec_1 = list(map(lambda a, b: a - b, vert_2, vert_1))
+        vec_2 = list(map(lambda a, b: a - b, vert_3, vert_1))
 
         x = vec_1[1] * vec_2[2] - vec_1[2] * vec_2[1]
         y = vec_1[2] * vec_2[0] - vec_1[0] * vec_2[2]
@@ -28,10 +28,10 @@ def calc_planes(data):
     return(planes)
 
 
-def calc_normals(vec_1, vec_2):
-    i = vec_1[1] * vec_2[2] - vec_1[2] * vec_2[1]
-    j = vec_1[2] * vec_2[0] - vec_1[0] * vec_2[2]
-    k = vec_1[0] * vec_2[1] - vec_1[1] * vec_2[0]
+def calc_normals(point_1, point_2):
+    i = point_1[1] * point_2[2] - point_1[2] * point_2[1]
+    j = point_1[2] * point_2[0] - point_1[0] * point_2[2]
+    k = point_1[0] * point_2[1] - point_1[1] * point_2[0]
 
     length = (math.sqrt((i ** 2) + (j ** 2) + (k ** 2)))
 
@@ -1424,7 +1424,7 @@ def rotate_data(coords, angle, offset=[0, 0, 0]):
         if angle[idx] != 0:
             translated_point = apply_matrix(rotate[idx], angle[idx], translated_point)
 
-    coords = sum_vectors(offset, translated_point)
+    coords = list(sum_vectors(offset, translated_point))
 
     return coords
 
