@@ -93,10 +93,11 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
     polygon_list_front, polygon_list_back = _sort_model_data(data, eqns, scale, angle, centre_point, screen_height, screen_width, rel_pos, show_back_faces)
 
     if show_back_faces == True:
+        trans_surface = new_surface((screen_width, screen_height), 200, (50, 50, 50))
         _ = _draw_model(polygon_list_back, face_base_colour, light_dir, data, eqns, trans_surface, angle, centre_point,
             scale, mid_z, show_face_no, show_av_norms, show_edges, screen_height, screen_width, avg_normals, rel_pos)
         # Create new surface to allow displaying back faces using transparency
-        trans_surface = new_surface((screen_width, screen_height), 200, (50, 50, 50))
+        
         display.blit(trans_surface, (0, 0))
 
     avg_normals =_draw_model(polygon_list_front, face_base_colour, light_dir, data, eqns, display, angle, centre_point,
