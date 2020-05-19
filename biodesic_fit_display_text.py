@@ -18,7 +18,7 @@ class DisplayData():
         self.display_quit = False
         self.text_boxes = {}
         self.overlay_surface = self.new_surface(150)
-        self.quit_surface = self.new_surface(255)
+        self.quit_surface = self.new_surface(150)
         self._init_text_values()
         self.add_text_data()
         self.draw_text_boxes()
@@ -58,8 +58,10 @@ class DisplayData():
 
     def clear_values(self):
         self._init_text_values()
+        self.overlay_surface = self.new_surface(150)
 
     def display(self):
+        self.overlay_surface = self.new_surface(150)
         self.draw_text_boxes()
 
     def update_value(self, name, value):
