@@ -83,8 +83,9 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
     centre_point = rotate_data(centre_point, angle, centre_point)
     eqns_2 = equations(data)
     light_dir = [0.5, 1.0, 0.0]
-    edge_colour = (200, 0, 0)   # Red
-    face_colour = (255, 40, 180)
+    # edge_colour = (200, 0, 0)   # Red
+    face_colour = (255, 40, 180) # Base colour for faces
+    edge_colour = face_colour
 
     for i in range(0, len(data[2])):
         polygon = []
@@ -107,9 +108,7 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
             polygon_list.append([i, polygon, polygon_center, normal])
 
     polygon_list = sorted(polygon_list, key=sort_polygons)
-    # new_display = pygame.Surface((screen_height, screen_width))
-    # new_display.set_alpha(10)                # alpha level
-    # new_display.fill((0 ,0 ,0))
+
     for i in range(0, len(polygon_list)):
         polygon = polygon_list[i][1]
         face_no = polygon_list[i][0]
@@ -135,9 +134,9 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
 
         if show_av_norms == True:
             avg_normals = draw_avg_normals(data, eqns_2, scale, angle, centre_point, mid_z, display, screen_height, screen_width, avg_normals, rel_pos)
-        # if show_face_no is True:
-        #     display.blit(new_display, (0, 0))
+
     return scale, mid_z, polygon_list, avg_normals
+
 
 def draw_avg_normals(data, eqns, scale, angle, centre_point, mid_z, display, screen_height,
     screen_width, avg_normals=None, rel_pos=(0, 0)):
@@ -350,7 +349,7 @@ def create_screen(data_list, screen_height, screen_width):
 
     # Set name in title bar
     pygame.display.set_caption('BioDesic Pattern Fitter')
-    background_colour = (50, 50 ,50)
+    background_colour = (50, 50, 50)
     pygame.key.set_repeat(50, 10)
 
     # Instantiate text box class
@@ -469,9 +468,6 @@ def create_screen(data_list, screen_height, screen_width):
                     screen_width,
                     mouse_rel_pos
                 )
-
-            if quit_scr == True:
-                display_data.quit_screen()
 
             if len(coords) > 0:
                 display_data.update_value('coordinates_1', coords[-1])
@@ -761,6 +757,7 @@ def create_screen(data_list, screen_height, screen_width):
             display_data.update_value('measurement', measurement)
             display_data.update_value('new_measurement', input_measurement)
             display_data.update_angle(angle)
+            display_data.show_quit(quit_scr)
             display_data.display()
 
             pygame.display.flip()
