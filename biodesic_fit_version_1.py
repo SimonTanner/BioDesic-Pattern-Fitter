@@ -79,35 +79,13 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
     """
     Draws the polygons of each face as different colours
     """
-    polygon_list = []
     centre_point = rotate_data(centre_point, angle, centre_point)
-    eqns_2 = equations(data)
-    light_dir = [0.5, 1.0, 0.0]
-    # edge_colour = (200, 0, 0)   # Red
-    face_colour = (255, 40, 180) # Base colour for faces
-    edge_colour = face_colour
+    eqns = equations(data)
+    light_dir = [0.5, 1.0, 0.0]     # Light direction vector
+    face_base_colour = (255, 40, 180) # Base colour for faces
+    edge_colour = face_base_colour
 
-    for i in range(0, len(data[2])):
-        polygon = []
-        face_no = i
-
-        for n in range(0, len(data[2][i])):
-            vert_no = data[2][i][n]
-            
-            points = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
-            points = screen_point_convertor(points, scale, centre_point[2], screen_height, screen_width, rel_pos)
-            normal = eqns_2[i][4]
-            normal = rotate_data(normal, angle)
-
-            if normal[1] > 0.0:
-                polygon.append(points)
-
-        if len(polygon) > 2:
-            polygon_center = calc_face_centre(face_no, data)
-            polygon_center = rotate_data(polygon_center, angle, centre_point)
-            polygon_list.append([i, polygon, polygon_center, normal])
-
-    polygon_list = sorted(polygon_list, key=sort_polygons)
+    polygon_list = _convert_model_data(data, eqns, scale, angle, centre_point, screen_height, screen_width, rel_pos)
 
     for i in range(0, len(polygon_list)):
         polygon = polygon_list[i][1]
@@ -116,7 +94,7 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
 
         if len(polygon) > 0:
             colour = int(255 * i / len(data[2]))
-            face_light_colour = calc_light_colour(light_dir, normal, data, face_colour, 5)
+            face_light_colour = calc_light_colour(light_dir, normal, data, face_base_colour, 5)
             pygame.draw.polygon(display, face_light_colour, polygon, 0)
 
             if show_face_no == True: 
@@ -133,10 +111,36 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
                         pygame.draw.line(display, edge_colour, polygon[k], polygon[k+1], 1)
 
         if show_av_norms == True:
-            avg_normals = draw_avg_normals(data, eqns_2, scale, angle, centre_point, mid_z, display, screen_height, screen_width, avg_normals, rel_pos)
+            avg_normals = draw_avg_normals(data, eqns, scale, angle, centre_point, mid_z, display, screen_height, screen_width, avg_normals, rel_pos)
 
     return scale, mid_z, polygon_list, avg_normals
 
+def _convert_model_data(data, eqns, scale, angle, centre_point, screen_height, screen_width, rel_pos):
+    """
+    Converts the data into list of polygons sorted by nearest to furthest in viewing plane
+    """
+    polygon_list = []
+    for face_no in range(0, len(data[2])):
+        polygon = []
+
+        for n in range(0, len(data[2][face_no])):
+            vert_no = data[2][face_no][n]
+            
+            points = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
+            points = screen_point_convertor(points, scale, centre_point[2], screen_height, screen_width, rel_pos)
+            normal = eqns[face_no][4]
+            normal = rotate_data(normal, angle)
+
+            if normal[1] > 0.0:
+                polygon.append(points)
+
+        if len(polygon) > 2:
+            polygon_center = calc_face_centre(face_no, data)
+            polygon_center = rotate_data(polygon_center, angle, centre_point)
+            polygon_list.append([face_no, polygon, polygon_center, normal])
+
+    polygon_list = sorted(polygon_list, key=sort_polygons)
+    return polygon_list
 
 def draw_avg_normals(data, eqns, scale, angle, centre_point, mid_z, display, screen_height,
     screen_width, avg_normals=None, rel_pos=(0, 0)):
