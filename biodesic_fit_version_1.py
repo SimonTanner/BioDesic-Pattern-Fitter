@@ -68,14 +68,21 @@ def calc_light_colour(vector, face_normal, data, colour, intensity=1):
 
     return colour
 
-def light_colour(dot_prod, value, intensity):
+def light_colour(dot_prod, value, intensity=1):
     colour = int(dot_prod * value * intensity)
     if colour > 255:
         colour = 255
     return colour
 
+def new_surface(screen_size, alpha=100, fill_colour=(0, 0, 0)):
+    child_surface = pygame.Surface(screen_size)
+    child_surface.set_alpha(alpha)                # alpha level
+    child_surface.fill(fill_colour)
+
+    return child_surface
+
 def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no, show_av_norms,
-                  show_edges, screen_height, screen_width, avg_normals=None, rel_pos=(0, 0)):
+                  show_edges, show_back_faces, screen_height, screen_width, avg_normals=None, rel_pos=(0, 0)):
     """
     Draws the polygons of each face as different colours
     """
@@ -83,10 +90,26 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
     eqns = equations(data)
     light_dir = [0.5, 1.0, 0.0]     # Light direction vector
     face_base_colour = (255, 40, 180) # Base colour for faces
+    polygon_list_front, polygon_list_back = _sort_model_data(data, eqns, scale, angle, centre_point, screen_height, screen_width, rel_pos, show_back_faces)
+
+    if show_back_faces == True:
+        _ = _draw_model(polygon_list_back, face_base_colour, light_dir, data, eqns, trans_surface, angle, centre_point,
+            scale, mid_z, show_face_no, show_av_norms, show_edges, screen_height, screen_width, avg_normals, rel_pos)
+        # Create new surface to allow displaying back faces using transparency
+        trans_surface = new_surface((screen_width, screen_height), 200, (50, 50, 50))
+        display.blit(trans_surface, (0, 0))
+
+    avg_normals =_draw_model(polygon_list_front, face_base_colour, light_dir, data, eqns, display, angle, centre_point,
+        scale, mid_z, show_face_no, show_av_norms, show_edges, screen_height, screen_width, avg_normals, rel_pos)
+
+    return scale, mid_z, polygon_list_front, avg_normals
+
+def _draw_model(polygon_list, face_base_colour, light_dir, data, eqns, display, angle, centre_point,
+    scale, mid_z, show_face_no, show_av_norms, show_edges, screen_height, screen_width, avg_normals=None, rel_pos=(0, 0)):
+    """
+    Draws polygons of model
+    """
     edge_colour = face_base_colour
-
-    polygon_list = _convert_model_data(data, eqns, scale, angle, centre_point, screen_height, screen_width, rel_pos)
-
     for i in range(0, len(polygon_list)):
         polygon = polygon_list[i][1]
         face_no = polygon_list[i][0]
@@ -113,34 +136,46 @@ def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no
         if show_av_norms == True:
             avg_normals = draw_avg_normals(data, eqns, scale, angle, centre_point, mid_z, display, screen_height, screen_width, avg_normals, rel_pos)
 
-    return scale, mid_z, polygon_list, avg_normals
+    return avg_normals
 
-def _convert_model_data(data, eqns, scale, angle, centre_point, screen_height, screen_width, rel_pos):
+def _sort_model_data(data, eqns, scale, angle, centre_point, screen_height,
+    screen_width, rel_pos, show_back_faces=False):
     """
     Converts the data into list of polygons sorted by nearest to furthest in viewing plane
     """
-    polygon_list = []
+    polygon_list_front = []
+    polygon_list_back = []
     for face_no in range(0, len(data[2])):
-        polygon = []
+        polygon_front = []
+        polygon_back = []
 
         for n in range(0, len(data[2][face_no])):
+            # Loop through the vertices of each polygon
             vert_no = data[2][face_no][n]
-            
-            points = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
-            points = screen_point_convertor(points, scale, centre_point[2], screen_height, screen_width, rel_pos)
-            normal = eqns[face_no][4]
-            normal = rotate_data(normal, angle)
+            vertices = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
+            vertices = screen_point_convertor(vertices, scale, centre_point[2], screen_height, screen_width, rel_pos)
+            normal = rotate_data(eqns[face_no][4], angle)
 
             if normal[1] > 0.0:
-                polygon.append(points)
+                # Only display polygons with normal pointing towards the view
+                polygon_front.append(vertices)
+            elif normal[1] < 0.0 and show_back_faces:
+                polygon_back.append(vertices)
 
-        if len(polygon) > 2:
+        if len(polygon_front) > 2:
             polygon_center = calc_face_centre(face_no, data)
             polygon_center = rotate_data(polygon_center, angle, centre_point)
-            polygon_list.append([face_no, polygon, polygon_center, normal])
+            polygon_list_front.append([face_no, polygon_front, polygon_center, normal])
 
-    polygon_list = sorted(polygon_list, key=sort_polygons)
-    return polygon_list
+        if len(polygon_back) > 2:
+            polygon_center = calc_face_centre(face_no, data)
+            polygon_center = rotate_data(polygon_center, angle, centre_point)
+            polygon_list_back.append([face_no, polygon_back, polygon_center, normal])
+
+    polygon_list_front = sorted(polygon_list_front, key=sort_polygons)
+    polygon_list_back = sorted(polygon_list_back, key=sort_polygons)
+
+    return polygon_list_front, polygon_list_back
 
 def draw_avg_normals(data, eqns, scale, angle, centre_point, mid_z, display, screen_height,
     screen_width, avg_normals=None, rel_pos=(0, 0)):
@@ -175,7 +210,6 @@ screen_height, screen_width, rel_pos=(0, 0)):
     """
     Draws the polygons of each face as different colours
     """
-
     polygon_list = []
     eqns_2 = equations(data)
     colour_black_grey = (50, 50, 50)
@@ -212,8 +246,6 @@ def draw_cut_lines(display, points):
     for i in range(0, point_count, 2):
         pygame.draw.line(display, (255, 50, 50), points[i], points[i + 1])
 
-
-
 def quit_game(data, save):
     if save == True:
         output_formatter = OutputFormatter(file_path, "obj")
@@ -222,6 +254,7 @@ def quit_game(data, save):
     sys.exit()
 
 def draw_axes(display, angle):
+    # TODO - fix rotation issue
     """
     Draws the x, y, z axes on screen
     """
@@ -334,7 +367,7 @@ class SeperatedFaces:
         return self.objects
 
 
-def create_screen(data_list, screen_height, screen_width):
+def create_screen(data_list, screen_height, screen_width, debug):
     # Calculate the centre point coordinate of the model
     centre_point = calc_centre(data_list[1])
     data_list_copy = copy.deepcopy(data_list)
@@ -397,6 +430,7 @@ def create_screen(data_list, screen_height, screen_width):
     quit_scr = False
     quitting = False
 
+    show_back_faces = True
     faces_vis = False   # Display face nos
     norm_vis = False    # Display normals
     show_edges = False  # Display edges
@@ -450,6 +484,7 @@ def create_screen(data_list, screen_height, screen_width):
                 faces_vis,
                 norm_vis,
                 show_edges,
+                show_back_faces,
                 screen_height,
                 screen_width,
                 avg_normals,
@@ -530,8 +565,11 @@ def create_screen(data_list, screen_height, screen_width):
                     elif event.key == K_f:
                         angle = list(view_angles['front'])
 
-                    elif event.key == K_b:
+                    elif event.key == K_b and not CONTROL:
                         angle = list(view_angles['back'])
+
+                    elif event.key == K_b and CONTROL:
+                        show_back_faces = flip_bool[show_back_faces]
 
                     elif event.key == K_r:
                         if CONTROL:
@@ -771,6 +809,8 @@ def create_screen(data_list, screen_height, screen_width):
             print(error)
             print("Oh no!")
             print(traceback.format_exc())
+            if debug == True:
+                sys.exit()
 
 
 
@@ -787,15 +827,15 @@ def main(debug=False):
             json.dump(equations(data_list), file, indent=4)
             file.close()
 
-    create_screen(data_list, Screen_height, Screen_width)
+    create_screen(data_list, Screen_height, Screen_width, debug)
 
 if __name__ == '__main__':
     args = sys.argv
-    if len(args) > 1:
-        debug = args[1].split("=")
+    if len(args) > 0:
+        debug = args[1].split("=")[1]
     else:
         debug = False
-    # print(debug)
+    print(debug)
     if debug == "True":
         debug = True
 
