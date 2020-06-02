@@ -1380,53 +1380,59 @@ def offset_vertices(int_faces, plane_eqn, measurement_2, data, connected_faces=N
     return data, av_normals
 
 
-def rotate_data(coords, angle, offset=[0, 0, 0]):
-    """
-    Rotates vectors about the offset point
-    """
-    cos = math.cos
-    sin = math.sin
+class Rotate():
+    def __init__(self):
+        self._create_rotation_matrix()
 
-    def return_0(val, neg=False):
-        return 0
+    def _create_rotation_matrix(self):
+        # Rotational matrices around axes x, y, z
+        cos = math.cos
+        sin = math.sin
+
+        def return_0(val, neg=False):
+            return 0
+        
+        def return_1(val, neg=False):
+            return 1
+
+        rotate_x = [
+            [(return_1, 1), (return_0, 1), (return_0, 1)],
+            [(return_0, 1), (cos, 1), (sin, -1)],
+            [(return_0, 1), (sin, 1), (cos, 1)]
+        ]
+
+        rotate_y = [
+            [(cos, 1), (return_0, 1), (sin, 1)],
+            [(return_0, 1), (return_1, 1), (return_0, 1)],
+            [(sin, 1), (return_0, 1), (cos, 1)]
+        ]
+
+        rotate_z = [
+            [(cos, 1), (sin, -1), (return_0, 1)],
+            [(sin, 1), (cos, 1), (return_0, 1)],
+            [(return_0, 1), (return_0, 1), (return_1, 1)]
+        ]
     
-    def return_1(val, neg=False):
-        return 1
-    
-    translated_point = sum_vectors(coords, offset, True)
-    # Rotational matrices around axes x, y, z
-    rotate_x = [
-        [(return_1, 1), (return_0, 1), (return_0, 1)],
-        [(return_0, 1), (cos, 1), (sin, -1)],
-        [(return_0, 1), (sin, 1), (cos, 1)]
-    ]
+        self.rotate = [rotate_x, rotate_y, rotate_z]
 
-    rotate_y = [
-        [(cos, 1), (return_0, 1), (sin, 1)],
-        [(return_0, 1), (return_1, 1), (return_0, 1)],
-        [(sin, 1), (return_0, 1), (cos, 1)]
-    ]
+    def rotate_data(self, coords, angle, offset=[0, 0, 0]):
+        """
+        Rotates vectors about the offset point
+        """
+        translated_point = sum_vectors(coords, offset, True)
 
-    rotate_z = [
-        [(cos, 1), (sin, -1), (return_0, 1)],
-        [(sin, 1), (cos, 1), (return_0, 1)],
-        [(return_0, 1), (return_0, 1), (return_1, 1)]
-    ]
+        def apply_matrix(matrix, angle, coords):
+            angle = math.radians(angle)
+            coords = map(lambda a: sum(map(lambda b, c: b[0](angle) * b[1] * c, a, coords)), matrix) 
+            return coords
 
-    rotate = [rotate_x, rotate_y, rotate_z]
+        for idx in range(0, len(angle)):
+            if angle[idx] != 0:
+                translated_point = apply_matrix(self.rotate[idx], angle[idx], translated_point)
 
-    def apply_matrix(matrix, angle, coords):
-        angle = math.radians(angle)
-        coords = map(lambda a: sum(map(lambda b, c: b[0](angle) * b[1] * c, a, coords)), matrix) 
+        coords = list(sum_vectors(offset, translated_point))
+
         return coords
-
-    for idx in range(0, len(angle)):
-        if angle[idx] != 0:
-            translated_point = apply_matrix(rotate[idx], angle[idx], translated_point)
-
-    coords = list(sum_vectors(offset, translated_point))
-
-    return coords
 
 
 def calc_delta_z(data):
