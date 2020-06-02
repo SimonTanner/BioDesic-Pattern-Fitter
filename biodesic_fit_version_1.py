@@ -25,18 +25,27 @@ FPSClock = pygame.time.Clock()
 
 Screen_width = 1400
 Screen_height = 900
+rotate_data = Rotate().rotate_data
 
 
-def screen_point_convertor(point, scale, mid_z, screen_height, screen_width, rel_pos=(0, 0)):
+def model_coords_convertor(coords, scale, centre, screen_dims, angle, rel_pos=(0, 0)):
     """
-    Converts the data coordinates (x, y, z) to fit on screen (x, y)
+    Converts real (x, y, z) coordinates to fit on screen (x, y)
     """
-    point = map(float, point)
-    point[0] = int(point[0] * scale + screen_width / 2) + rel_pos[0]
-    point[2] = int( screen_height / 2 - (point[2] - mid_z) * scale ) + rel_pos[1]
-    del(point[1])
+    coords = list(map(float, coords))
+    # angle = (angle * -1)
+    coords = rotate_data(coords, angle, centre)
+    del(coords[2])
+    scr_coords = []
+    # print(coords, scale, centre, screen_dims, angle, rel_pos)
+    for axis in range(0, len(coords)):
+        scr_coords.append(
+            int(screen_dims[axis]/2 + rel_pos[axis] - (coords[axis] - centre[axis]) * scale)
+        )
+    # print(scr_coords)
+    # sys.exit()
 
-    return point
+    return scr_coords
 
 
 def data_point_screen_convertor(point, scale, mid_z, centre_point, angle, screen_height, screen_width, rel_pos=(0, 0)):
@@ -44,7 +53,10 @@ def data_point_screen_convertor(point, scale, mid_z, centre_point, angle, screen
     Converts (x, y) screen coordinates back to real (x, y, z) coords
     """
     point = map(float, point)
-    point[0] = (point[0] - screen_width / 2  + rel_pos[0]) / scale
+    print(centre_point)
+    centre_point = rotate_data(centre_point, angle)
+    print(centre_point)
+    point[0] = (point[0] - screen_width / 2  + rel_pos[0]) / scale + centre_point[0]
     z_coord = mid_z + (screen_height / 2 + rel_pos[1] - point[1]) / scale
     point.append(z_coord)
     point[1] = 0.0
@@ -55,7 +67,7 @@ def data_point_screen_convertor(point, scale, mid_z, centre_point, angle, screen
 
 
 def sort_polygons(polygons):
-    return polygons[2][1]
+    return polygons[2][2]
 
 def calc_light_colour(vector, face_normal, data, colour, intensity=1):
     """
@@ -75,6 +87,9 @@ def light_colour(dot_prod, value, intensity=1):
     return colour
 
 def new_surface(screen_size, alpha=100, fill_colour=(0, 0, 0)):
+    """
+    Returns a new child surface
+    """
     child_surface = pygame.Surface(screen_size)
     child_surface.set_alpha(alpha)                # alpha level
     child_surface.fill(fill_colour)
@@ -123,8 +138,8 @@ def _draw_model(polygon_list, face_base_colour, light_dir, data, eqns, display, 
 
             if show_face_no == True: 
                 polygon_center = calc_face_centre(face_no, data)
-                polygon_center = rotate_data(polygon_center, angle, centre_point)
-                polygon_center = screen_point_convertor(polygon_center, scale, mid_z, screen_height, screen_width, rel_pos)
+                # polygon_center = rotate_data(polygon_center, angle, centre_point)
+                # polygon_center = model_coords_convertor(polygon_center, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
                 simple_text(display, (face_no+1), polygon_center, (255, colour, 255 - colour))
 
             if show_edges == True:
@@ -150,18 +165,22 @@ def _sort_model_data(data, eqns, scale, angle, centre_point, screen_height,
         polygon_front = []
         polygon_back = []
 
-        for n in range(0, len(data[2][face_no])):
+        for idx in range(0, len(data[2][face_no])):
             # Loop through the vertices of each polygon
-            vert_no = data[2][face_no][n]
-            vertices = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
-            vertices = screen_point_convertor(vertices, scale, centre_point[2], screen_height, screen_width, rel_pos)
+            vert_no = data[2][face_no][idx]
+            # vertex = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
+            vertex = data[1][(vert_no - 1)]
+            vertex = model_coords_convertor(vertex, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
+            
             normal = rotate_data(eqns[face_no][4], angle)
 
-            if normal[1] > 0.0:
+            # whichever index is used is the one removed when converting between 3d > 2d becomes the value
+            # used to determine whether the direction of view
+            if normal[2] > 0.0:
                 # Only display polygons with normal pointing towards the view
-                polygon_front.append(vertices)
-            elif normal[1] < 0.0 and show_back_faces:
-                polygon_back.append(vertices)
+                polygon_front.append(vertex)
+            elif normal[2] < 0.0 and show_back_faces:
+                polygon_back.append(vertex)
 
         if len(polygon_front) > 2:
             polygon_center = calc_face_centre(face_no, data)
@@ -195,11 +214,11 @@ def draw_avg_normals(data, eqns, scale, angle, centre_point, mid_z, display, scr
             normal = map(lambda a: a * normal_disp_size / scale , avg_normals[i])
             p2 = map(lambda a, b: a + b, p1, normal)
 
-            p1 = rotate_data(p1, angle, centre_point)
-            p1 = screen_point_convertor(p1, scale, mid_z, screen_height, screen_width, rel_pos)
+            # p1 = rotate_data(p1, angle, centre_point)
+            p1 = model_coords_convertor(p1, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
 
-            p2 = rotate_data(p2, angle, centre_point)
-            p2 = screen_point_convertor(p2, scale, mid_z, screen_height, screen_width, rel_pos)
+            # p2 = rotate_data(p2, angle, centre_point)
+            p2 = model_coords_convertor(p2, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
 
             pygame.draw.line(display, normal_colour, p1, p2, 1)
 
@@ -220,8 +239,8 @@ screen_height, screen_width, rel_pos=(0, 0)):
         for n in range(0, len(data[2][i])):
 
             vert_no = data[2][i][n]
-            points = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
-            points = screen_point_convertor(points, scale, mid_z, screen_height, screen_width, rel_pos)
+            # points = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
+            points = model_coords_convertor(points, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
             normals = eqns_2[i][4]
             normals = rotate_data(normals, angle)
 
@@ -263,18 +282,17 @@ def draw_axes(display, angle):
     size = 50
     offset = 50
     axes = ({'x': (-size, 0, 0)}, {'y': (0, size, 0)}, {'z': (0, 0, size)})
+    axes = ({'x': (-size, 0, 0)}, {'y': (0, size, 0)}, {'z': (0, 0, size)})
     screen_dims = display.get_size()
-    screen_offset = (2 * offset, offset)
+    screen_offset = (size + offset, size + offset)
     screen_position = sum_vectors(screen_dims, screen_offset, True)
-    # print(screen_position)
     for axis in axes:
-        name = axis.keys()[0]
+        axis_name = axis.keys()[0]
         coords = axis.values()[0]
         rotated_coords = rotate_data(coords, angle)
-        del(rotated_coords[1])
+        del(rotated_coords[2])
         position = sum_vectors(screen_position, rotated_coords, True)
-        # print(position)
-        simple_text(display, name, position, colour)
+        simple_text(display, axis_name, position, colour)
         pygame.draw.line(display, colour, screen_position, position)
     # sys.exit()
 
@@ -318,15 +336,15 @@ def move_screen_points(screen_points, mouse_rel_motion):
     return moved_points
 
 def display_slice_outlines(display, int_faces, angle, centre_point, scale, mid_z,
-    screen_height, screen_width, mouse_rel_pos):
+    screen_height, screen_width, rel_pos):
     line_colour, circle_colour = (255, 50, 50), (50, 255, 50)
     for i in int_faces:
         cutp1 = i[1][0][2]
         cutp2 = i[1][1][2]
-        cutp1 = rotate_data(cutp1, angle, centre_point)
-        cutp1 = screen_point_convertor(cutp1, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
-        cutp2 = rotate_data(cutp2, angle, centre_point)
-        cutp2 = screen_point_convertor(cutp2, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
+        # cutp1 = rotate_data(cutp1, angle, centre_point)
+        cutp1 = model_coords_convertor(cutp1, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
+        # cutp2 = rotate_data(cutp2, angle, centre_point)
+        cutp2 = model_coords_convertor(cutp2, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
 
         pygame.draw.circle(display, circle_colour, cutp1, 5, 2)
         pygame.draw.circle(display, circle_colour, cutp2, 5, 2)
@@ -395,12 +413,12 @@ def create_screen(data_list, screen_height, screen_width, debug):
 
     # Consts for rotational view angles
     view_angles = {
-        'front': (0, 0, 180),
-        'back': (0, 0, 0),
-        'left': (0, 0, 90),
-        'right': (0, 0, -90),
-        'top': (-90, 0, 0),
-        'bottom': (90, 0, 0)
+        'front': (-90, 0, 0),
+        'back': (90, 180, 180),
+        'left': (-90, 90, 0),
+        'right': (-90, -90, 0),
+        'top': (0, 0, 0),
+        'bottom': (180, 0, 0)
     }
     angle = list(view_angles['front'])
     delta_ang_amount = 2 # Number of degrees to rotate by every frame
@@ -434,10 +452,10 @@ def create_screen(data_list, screen_height, screen_width, debug):
     show_back_faces = True
     faces_vis = False   # Display face nos
     norm_vis = False    # Display normals
-    show_edges = False  # Display edges
+    show_edges = True  # Display edges
     show_unedited = False   # Display unedited model edges
-    align_to_plane = False  # Align slice plane to geometry
-    plane_aligned = False
+    align_to_plane = False  # Re-align slice plane to local geometry
+    plane_aligned = False   # Slice plane is aligned to local geometry
     int_faces_1 = []
     test_data = {}
     cut_plane_2 = []
@@ -712,16 +730,17 @@ def create_screen(data_list, screen_height, screen_width, debug):
 
 
             if len(points) > 0:
-                print(points)
-                print(mouse_rel_pos)
-                print(coords)
+                # print(points)
+                # print(mouse_rel_pos)
+                # print(coords)
                 # points = move_screen_points(points, mouse_rel_pos)
-                updated_points = []
-                for coord in coords:
-                    screen_coord = screen_point_convertor(
-                        coord, scale, mid_z, screen_height, screen_width, rel_pos=(0, 0)
-                    )
-                    updated_points.append(screen_coord)
+                # updated_points = []
+                # for coord in coords:
+                #     model_coords_convertor(cutp2, scale, centre_point, (screen_width, screen_height), rel_pos)
+                #     screen_coord = screen_point_convertor(
+                #         coord, scale, mid_z, screen_height, screen_width, rel_pos=(0, 0)
+                #     )
+                #     updated_points.append(screen_coord)
 
                 # sys.exit()
                 # points = updated_points
@@ -760,9 +779,9 @@ def create_screen(data_list, screen_height, screen_width, debug):
                         # coords.extend([coord1, coord2])
                         print("align_to_plane: True, cut_plane: None")
                         print(cut_plane_2)
-
-                        p1 = screen_point_convertor(coord1, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
-                        p2 = screen_point_convertor(coord2, scale, mid_z, screen_height, screen_width, mouse_rel_pos)
+                        
+                        p1 = model_coords_convertor(coord1, scale, centre_point, (screen_width, screen_height), angle, mouse_rel_pos)
+                        p2 = model_coords_convertor(coord2, scale, centre_point, (screen_width, screen_height), angle, mouse_rel_pos)
                         points.append([p1, p2])
                         int_faces_1 = get_intersect_face_plane(coord1, coord2, data_list_copy, cut_plane_2)[0]
                         print(len(int_faces_1))
@@ -836,7 +855,6 @@ if __name__ == '__main__':
         debug = args[1].split("=")[1]
     else:
         debug = False
-    print(debug)
     if debug == "True":
         debug = True
 
