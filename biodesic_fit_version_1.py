@@ -1,1571 +1,251 @@
 import os, pygame, sys, math, random, itertools, copy
 from pygame.locals import *
 import json
+import traceback
+import time, datetime
 
+from biodesic_functions import *
+from biodesic_fit_display_text import *
 from freecad_formatter import freecad_format
 from input_file_formatter import InputFormatter
 from output_file_formatter import OutputFormatter
 
-file_name = "test_data/Skinny-v5.txt"
+# file_name = "test_data/Skinny-v5.txt"
 
 file_name = "test_data/Skinny-v5.obj"
+
+# file_name = "test_data/bio-hoody-02-v3 _Fitted.txt"
 
 file_path = os.path.join(os.getcwd(), file_name)
 
 pygame.init()
 
-FPS = 10
+FPS = 30
 FPSClock = pygame.time.Clock()
 
-Screen_width = 1200
-Screen_height = 800
-
-def calc_planes(data):
-    planes = []
-    for i in range(0, len(data[2])):
-        point_1 = data[2][i][0] - 1
-        point_2 = data[2][i][1] - 1
-        point_3 = data[2][i][2] - 1
-
-        vert_1 = data[1][point_1]
-        vert_2 = data[1][point_2]
-        vert_3 = data[1][point_3]
-
-        vec_1, vec_2 =  [], []
-
-        vec_1 = map(lambda a, b: a - b, vert_2, vert_1)
-        vec_2 = map(lambda a, b: a - b, vert_3, vert_1)
-
-        x = vec_1[1] * vec_2[2] - vec_1[2] * vec_2[1]
-        y = vec_1[2] * vec_2[0] - vec_1[0] * vec_2[2]
-        z = vec_1[0] * vec_2[1] - vec_1[1] * vec_2[0]
-
-        d = ((vert_1[0] * x) + (vert_1[1] * y) + (vert_1[2] * z))
-        plane_eqn = [x, y, z, d]
-
-        planes.append([i + 1, plane_eqn])
-
-    return(planes)
+Screen_width = 1400
+Screen_height = 900
+rotate_data = Rotate().rotate_data
 
 
-def calc_normals(vec_1, vec_2):
-    i = vec_1[1] * vec_2[2] - vec_1[2] * vec_2[1]
-    j = vec_1[2] * vec_2[0] - vec_1[0] * vec_2[2]
-    k = vec_1[0] * vec_2[1] - vec_1[1] * vec_2[0]
-
-    length = (math.sqrt((i ** 2) + (j ** 2) + (k ** 2)))
-
-    i = i/length
-    j = j/length
-    k = k/length
-
-    normal = [i, j, k]
-
-    return(normal)
-
-
-
-def calc_line_eqn(vec_1, vert_1):
-    # Function to calculate the equation of a line
-    while True:
-        try:
-            m = vec_1[1] / vec_1[0]
-
-        except ZeroDivisionError:
-            # if dy/dx = inf then m is set to False
-            m = None
-            break
-
-        else:
-            break
-
-    while True:
-        try:
-            n = vec_1[2] / vec_1[0]
-
-        except ZeroDivisionError:
-            n = None
-            break
-
-        else:
-            break
-
-    while True:
-        try:
-            o = vec_1[1] / vec_1[2]
-
-        except ZeroDivisionError:
-            o = None
-            break
-
-        else:
-            break
-
-    x = vert_1[0]
-    y = vert_1[1]
-    z = vert_1[2]
-
-    if m != None:
-        c = y - m * x
-    else:
-        c = x
-
-    if n != None:
-        b = z - n * x
-    else:
-        b = x
-
-    if o != None:
-        a = y - o * z
-    else:
-        a = z
-
-    eqn_xy = [m, c]
-    eqn_xz = [n, b]
-    eqn_zy = [o, a]
-
-    return([eqn_xy, eqn_xz, eqn_zy])
-
-
-def calc_line_eqn_2(point_1, point_2):
-    # Function to calculate the equation of a line
-    dx, dy, dz = map(lambda a, b: a - b, point_2, point_1)
-
-    while True:
-        try:
-            m = dy / dx
-        except ZeroDivisionError:
-            # if dy/dx = inf then m is set to False then m_1 is set to 0 = dx/dy
-            m = None
-            break
-        else:
-            break
-
-    while True:
-        try:
-            n = dz / dx
-        except ZeroDivisionError:
-            n = None
-            break
-        else:
-            break
-
-    while True:
-        try:
-            o = dy / dz
-        except ZeroDivisionError:
-            o = None
-            break
-        else:
-            break
-
-    x, y, z = point_1
-
-    if m != None:
-        c = y - m * x
-    else:
-        c = x
-
-    if n != None:
-        b = z - n * x
-    else:
-        b = x
-
-    if o != None:
-        a = y - o * z
-    else:
-        a = z
-
-    #a = (y - n * x) / (z - m * x)
-
-    eqn_xy = [m, c]
-    eqn_xz = [n, b]
-    eqn_zy = [o, a]
-
-    return([eqn_xy, eqn_xz, eqn_zy])
-
-
-def equations(data):
-
-    lines_eqn = []
-
-    for i in range(0, len(data[2])):
-        vert_1 = (data[2][i][0] - 1)
-        vert_2 = (data[2][i][1] - 1)
-        vert_3 = (data[2][i][2] - 1)
-
-        vec_1, vec_2, vec_3 =  [], [], []
-
-        for n in range(0, len(data[1][vert_1])):
-            vec_1.append(data[1][vert_2][n] - data[1][vert_1][n])
-            vec_2.append(data[1][vert_3][n] - data[1][vert_2][n])
-            vec_3.append(data[1][vert_1][n] - data[1][vert_3][n])
-
-        eqn_1 = calc_line_eqn(vec_1, data[1][vert_1])
-        eqn_2 = calc_line_eqn(vec_2, data[1][vert_2])
-        eqn_3 = calc_line_eqn(vec_3, data[1][vert_3])
-
-        normal = calc_normals(vec_1, vec_2)
-
-        lines_eqn.append([i+1, [(vert_1 + 1), vec_1, eqn_1], [(vert_2 + 1), vec_2, eqn_2], [(vert_3 + 1), vec_3, eqn_3], normal])
-
-    return(lines_eqn)
-
-
-
-def vert_connects(data):
-    connections = []
-    for n in range(1, data[0][0][0] + 1):
-        connections.append([n])
-        connects = []
-
-        for j in range(0, data[0][0][1]):
-            while True:
-                try:
-                    count = data[2][j].index(n)
-                    for k in range(0, len(data[2][j])):
-                        if k != count:
-                            while True:
-                                try:
-                                    connects.index(data[2][j][k])
-                                except ValueError:
-                                    connects.append(data[2][j][k])
-                                else:
-                                    break
-                except ValueError:
-                    break
-                else:
-                    break
-
-        if len(connects) > 0:
-            connections[n-1].append(connects)
-
-    return(connections)
-
-
-def face_connects(data):
+def model_coords_convertor(coords, scale, centre, screen_dims, angle, rel_pos=(0, 0)):
     """
-    Builds a list containing sub lists with the 1st item being the vert no
-    and then another sublist of all face nos connected to it.
-    E.g.
-    [
-        [1, [2, ...]],
-        [2, [3, 45, 78, 5]],
-        [3, [...]]
-    ]
+    Converts real (x, y, z) coordinates to fit on screen (x, y)
     """
-    connections = []
-    counts = []
+    coords = list(map(float, coords))
+    # angle = (angle * -1)
+    coords = rotate_data(coords, angle, centre)
+    del(coords[2])
+    scr_coords = []
+    # print(coords, scale, centre, screen_dims, angle, rel_pos)
+    for axis in range(0, len(coords)):
+        scr_coords.append(
+            int(screen_dims[axis]/2 + rel_pos[axis] - (coords[axis] - centre[axis]) * scale)
+        )
+    # print(scr_coords)
+    # sys.exit()
 
-    for n in range(1, data[0][0][0] + 1):
-        connections.append([n])
-        connects = []
-        for j in range(0, data[0][0][1]):
-            while True:
-                try:
-                    # Hacky means to break the loop by generating an error
-                    # when we can't find the vert no in the face list of verts
-                    data[2][j].index(n)
-                    while True:
-                        try:
-                            connects.index(j + 1)
-                        except ValueError:
-                            connects.append(j + 1)
-                            break
-                        else:
-                            break
-                except ValueError:
-                    break
-                else:
-                    break
-        if len(connects) > 0:
-            connections[n-1].append(connects)
-            counts.append(len(connects))
-    check_connects = len(list(set(counts)))
-    assert check_connects > 1, "WARNING: The length of all connections produced by face_connects fn are the same"
-    return(connections)
+    return scr_coords
 
 
-def avg_normal(vert_no, data, equations, connected_faces=None):
+def data_point_screen_convertor(point, scale, mid_z, centre_point, angle, screen_height, screen_width, rel_pos=(0, 0)):
     """
-    Calculates the average normal for a vert_no, the data_list and set of equations 
+    Converts (x, y) screen coordinates back to real (x, y, z) coords
     """
-    av_norm = [0.0, 0.0, 0.0]
-    # Only calculate the connected_faces if required
-    if connected_faces == None:
-        connected_faces = face_connects(data)
-    # Loop through all connected face_nos in the list
-    for i in range(0, len(connected_faces[vert_no - 1][1])):
-        face = connected_faces[vert_no - 1][1][i] - 1
-        # Cumulative vector sum of all face's normals
-        av_norm = map(lambda a, b: a + b, equations[face][4], av_norm)
-    av_norm_len = math.sqrt(sum(map(lambda x: x ** 2, av_norm)))
-    for n in range(0, 3):
-        av_norm[n] /= av_norm_len
-    return(av_norm)
-
-def calculate_all_avg_normals(data, equations):
-    connected_faces = face_connects(data)
-    av_normals = []
-
-    for i in range(0, len(data[1])):
-        av_normal = avg_normal((i + 1), data, equations, connected_faces)
-        av_normals.append(av_normal)
-    assert len(av_normals) == len(data[1]), "No. of normals not equal to no. of vertices"
-    return av_normals
-
-
-def plane_cutter(coord_1, coord_2, coord_3):
-    vec_1, vec_2 =  [], []
-
-    vec_1 = map(lambda a, b: a - b, coord_2, coord_1)
-    vec_2 = map(lambda a, b: a - b, coord_3, coord_1)
-
-    x = vec_1[1] * vec_2[2] - vec_1[2] * vec_2[1]
-    y = vec_1[2] * vec_2[0] - vec_1[0] * vec_2[2]
-    z = vec_1[0] * vec_2[1] - vec_1[1] * vec_2[0]
-
-    d = ((coord_1[0] * x) + (coord_1[1] * y) + (coord_1[2] * z))
-    plane_eqn = [x, y, z, d]
-
-    return [coord_1, coord_2, coord_3, plane_eqn]
-
-
-
-
-def vector_in_plane(plane, vector):
-    """
-    projects a vector onto a given plane
-    """
-    normal = plane[:3]
-    normal_mod_sqrd = sum(map(lambda a: a**2, normal))
-
-    vector_mod_sqrd = sum(map(lambda a: a**2, vector))
-
-    normal = map(lambda a: a / normal_mod_sqrd, normal)
-
-    normal_vector_prod = sum(map(lambda a, b: a * b, normal, vector))
-
-    coeff = normal_vector_prod / vector_mod_sqrd
-
-    vec_in_plane = map(lambda a, b: a - b, vector, map(lambda c: coeff * c, normal))
-
-    return vec_in_plane
-
-
-def inv_eqn(equation):
-    if equation[0] != 0.0 and equation[0] != None:
-        grad = 1 / equation[0]
-        const = - equation[1] * grad
-
-    else:
-        grad = None
-        const = equation[1]
-
-    return [grad, const]
-
-
-def plane_intersect(plane, eqns):
-    """
-    Calculates the point of intersection between a plane and a line and returns the coords
-    of this point.
-    eqns in form of:
-        dy/dx = eqns[0][0]
-        dz/dx = eqns[1][0]
-        dy/dz = eqns[2][0]
-
-    constants for each = eqns[n][1]
-    """
-    Error_val = 0.01
-    # dy/dx = eqns[0][0]
-    # dz/dx = eqns[1][0]
-    # dy/dz = eqns[2][0]
-
-    c = eqns[0][1]
-    b = eqns[1][1]
-    a = eqns[2][1]
-
-    px = plane[0]
-    py = plane[1]
-    pz = plane[2]
-    D = plane[3]
-
-    point = [None, None, None]
-    point_check = []
-    #eqns_2 = eqns[:]
-
-    # 1st test to see if any lines equations are of form y = constant
-    for i in range(0, len(eqns)):
-        if eqns[i][0] == None:
-            if i != 1:
-                point[i] = eqns[i][1]
-
-        elif eqns[i][0] == 0.0:
-            if i == 0:
-                point[1] = eqns[i][1]
-
-            elif i == 1:
-                point[2] = eqns[i][1]
-
-            elif i == 2:
-                point[1] = eqns[i][1]
-
-    # 2nd test to see if the plane is of the form y = constant (i.e. if plane is perpendicular to an axis)
-    for i in range(0, len(plane) - 2):
-        for k in range(1, len(plane) - 1):
-            if plane[i] == 0.0 and plane[k] == 0.0 and i != k:
-                index = 3 - i - k
-                p = plane[3] / plane[index]
-
-                if point[index] == None:
-                    point[index] = p
-
-                elif point[index] != None:
-                    if abs(point[index] - p) > Error_val:
-                        point[index] = False
-
-    # Check how many coords calculated so far
-    while True:
-        try:
-            ind = point.index(False)
-            if type(point[ind]) == bool:
-                unfound = True
-
-        except ValueError:
-            unfound = False
-            break
-
-        else:
-            break
-
-    if unfound == False:
-        for i in range(0, len(point)):
-            if point[i] != None:
-                point_check.append(i)
-
-        # Calculate the rest of the coordinates
-        if len(point_check) == 0:
-
-            for i in range(0, len(point) - 1):
-                for k in range(1, len(point)):
-                    if i != k:
-                        index = 3 - i - k
-                        eqn_0 = eqns[0]
-                        eqn_1 = eqns[1]
-
-                        if index == 1:
-                            eqn_0 = inv_eqn(eqns[0])
-                            eqn_1 = inv_eqn(eqns[2])
-
-                        elif index == 2:
-                            eqn_0 = inv_eqn(eqns[1])
-                            eqn_1 = eqns[2]
-
-                        point[index] = plane[3] - plane[i] * eqn_0[1] - plane[k] * eqn_1[1]
-                        point[index] /= (plane[index] + plane[i] * eqn_0[0] + plane[k] * eqn_1[0])
-
-        elif len(point_check) == 1:
-            index = point_check[0]
-            if index == 0:
-                i, k = 1, 2
-                eqn_0 = eqns[2]
-                eqn_1 = inv_eqn(eqns[2])
-
-            elif index == 1:
-                i, k = 0, 2
-                eqn_0 = inv_eqn(eqns[1])
-                eqn_1 = eqns[1]
-
-            elif index == 2:
-                i, k = 0, 1
-                eqn_0 = inv_eqn(eqns[0])
-                eqn_1 = eqns[0]
-
-            if plane[i] != 0.0 or plane[k] != 0.0:
-                point[i] = plane[3] - plane[index] * point[index] - plane[k] * eqn_1[1]
-                point[i] /= (plane[i] + plane[k] * eqn_1[0])
-                point[k] = plane[3] - plane[index] * point[index] - plane[i] * eqn_0[1]
-                point[k] /= (plane[k] + plane[i] * eqn_0[0])
-
-            else:
-                if index == 0:
-                    i, k = 1, 2
-
-                    eqn_0 = eqns[0]
-                    eqn_1 = eqns[1]
-
-                elif index == 1:
-                    i, k = 0, 2
-
-                    eqn_0 = inv_eqn(eqns[0])
-                    eqn_1 = inv_eqn(eqns[2])
-
-                elif index == 2:
-                    i, k = 0, 1
-
-                    eqn_0 = inv_eqn(eqns[1])
-                    eqn_1 = eqns[2]
-
-                point[i] = eqn_0[0] * point[index] + eqn_0[1]
-                point[k] = eqn_1[0] * point[index] + eqn_1[1]
-
-        elif len(point_check) == 2:
-            index = 3 - sum(point_check)
-            i, k = point_check
-
-            if index == 0:
-                eqn_0 = inv_eqn(eqns[0])
-                eqn_1 = inv_eqn(eqns[1])
-
-            elif index == 1:
-                eqn_0 = eqns[0]
-                eqn_1 = eqns[2]
-
-            elif index == 2:
-                eqn_0 = eqns[1]
-                eqn_1 = inv_eqn(eqns[2])
-
-            if eqn_0[0] != None:
-                point[index] = point[i] * eqn_0[0] + eqn_0[1]
-
-            elif eqn_1[0] != None:
-                point[index] = point[k] * eqn_1[0] + eqn_1[1]
-
-        while True:
-            try:
-                D = sum(map(lambda a, b: a * b, point, plane[:-1]))
-                if abs(D - plane[3]) > Error_val:
-                    point = None
-
-            except TypeError:
-                point = None
-                break
-
-            else:
-                break
-
-    else:
-        point = None
-
-    return point
-
-
-def point_distance(vert_1, vert_2):
-    """
-    Scalar distance between two vectors
-    """
-    distance = 0.0
-
-    for n in range(0, len(vert_1)):
-        distance += ( vert_1[n] - vert_2[n] ) **2
-
-    distance = math.sqrt(distance)
-
-    return(distance)
-
-
-def face_find(data, vert_1_no, vert_2_no, face_no):
-
-    joined = []
-    joined_faces = []
-
-    for n in range(0, len(data[2])):
-        if face_no != n:
-            while True:
-                try:
-                    data[2][n].index(vert_1_no + 1)
-                    joined.append(n+1)
-
-                except ValueError:
-                    break
-
-                except IndexError:
-                    break
-
-                else:
-                    break
-
-
-    for m in range(0, len(joined)):
-        while True:
-            try:
-                data[2][joined[m] - 1].index(vert_2_no + 1)
-                joined_faces.append(joined[m])
-
-            except ValueError:
-                break
-
-            except IndexError:
-                break
-
-            else:
-                break
-
-    return(joined_faces)
-
-
-def find_vert(eqns, vert_no):
-    # Not currently being used
-    """
-    Finds the index of the equation relating to a particular vertex
-    """
-    for y in range(0, len(eqns)):
-        if vert_no in eqns[y]:
-            return y
-        else:
-            return None
-
-
-def two_plane_intersection(plane_1, plane_2):
-    """
-    Function to calculate the line of intersection between two planes in the form:
-        mx + ny +oz + D = 0
-    """
-
-    x1, y1, z1, D1 = map(lambda a: float(a),[plane_1[0], plane_1[1], plane_1[2], plane_1[3]])
-    x2, y2, z2, D2 = map(lambda a: float(a),[plane_2[0], plane_2[1], plane_2[2], plane_2[3]])
-
-    # find 1st intersection point
-    # let y = 0
-
-    px1 = (z2 * D1 - z1 * D2) / (x2 * z1 - x1 * z2)
-    py1 = float(0)
-    pz1 = (x1 * D2 - x2 * D1) / (x2 * z1 - x1 * z2)
-
-    p1 = [px1, py1, pz1]
-
-    # find 2nd intersection point
-    # let z = 0
-
-    px2 = (y2 * D1 - y1 * D2) / (x2 * y1 - x1 * y2)
-    py2 = (x1 * D2 - x2 * D1) / (x2 * y1 - x1 * y2)
-    pz2 = float(0)
-
-    # Need to add condition x = 0 incase line does not pass through xy or xz plane
-    # Need to add while condition incase division by zero
-
-    m = (py1 - py2) / (px1 - px2)
-    c = py1 - m * px1
-
-    n = (pz1 - pz2) / (px1 - px2)
-    b = pz1 - n * px1
-
-    o = (py1 - py2) / (pz1 - pz2)
-    a = py1 - o * pz1
-
-    eqn_xy = [m, c]
-    eqn_xz = [n, b]
-    eqn_zy = [o, a]
-
-    return([eqn_xy, eqn_xz, eqn_zy])
-
-
-def attached_faces(equations, data):
-    #function creates a list of all faces attached directly to a particular plane
-    faces = []
-    planes = calc_planes(data)
-
-    for i in range(0, len(data[2])):
-
-        vert_1_no = data[2][i][0] - 1
-        vert_2_no = data[2][i][1] - 1
-        vert_3_no = data[2][i][2] - 1
-
-
-        vert_1 = data[1][vert_1_no]
-        vert_2 = data[1][vert_2_no]
-        vert_3 = data[1][vert_3_no]
-
-        centre_point = map(lambda a, b, c: (a + b + c) / 3, vert_1, vert_2, vert_3)
-
-        point_1 = map(lambda a, b: (a + b) / 2, vert_1, vert_2)
-        point_2 = map(lambda a, b: (a + b) / 2, vert_2, vert_3)
-        point_3 = map(lambda a, b, c: (a + b) / 2 + c , point_1, point_2, equations[i][4])
-
-        plane_1 = plane_cutter(point_1, point_2, point_3)
-
-        joined_faces  = []
-
-        face_1 = face_find(data, vert_1_no, vert_2_no, i)
-        face_2 = face_find(data, vert_2_no, vert_3_no, i)
-
-        if len(face_1) > 0 :
-            joined_faces.append([face_1[0]])
-            joined_faces[0].append([point_1, vert_1_no + 1, vert_2_no + 1, True])
-
-            if len(face_2) > 0:
-                joined_faces.append([face_2[0]])
-                joined_faces[1].append([point_2, vert_2_no + 1, vert_3_no + 1, True])
-
-            else:
-                joined_faces.append([i + 1])
-                joined_faces[1].append([point_2, vert_2_no + 1, vert_3_no + 1, False])
-
-            joined_faces.append(plane_1[3])
-
-        else:
-            if len(face_1) < 1:
-                joined_faces.append([i + 1])
-                joined_faces[0].append([point_1, vert_1_no + 1, vert_2_no + 1, False])
-
-                if len(face_2) > 0:
-                    joined_faces.append([face_2[0]])
-                    joined_faces[1].append([point_2, vert_2_no + 1, vert_3_no + 1, True])
-
-                joined_faces.append(plane_1[3])
-
-        faces.append(joined_faces)
-
-    return(faces)
-
-
-
-def index_verts(equations, face, vert):
-    for n in range(1, len(equations[face])-1):
-        while True:
-            try:
-                equations[face][n].index(vert)
-                place = n
-            except ValueError:
-                break
-
-            except UnboundLocalError:
-                break
-
-            else:
-                break
-
-    return(place)
-
-
-def line_intersection(line_1, line_2):
-    """
-    function to calculate the point of intersect between two given lines and return the coords
-    """
-    m1, c1 = line_1[0]
-    m2, c2 = line_2[0]
-    n1, b1 = line_1[1]
-    n2, b2 = line_2[1]
-    o1, a1 = line_1[2]
-    o2, a2 = line_2[2]
-
-    if m1 and m2 != None:
-        x = (c2 - c1) / (m1 - m2)
-        y = m1 * x + c1
-
-    else:
-        if m1 == None and m2 != None:
-            x = c1
-            y = m2 * x + c2
-        elif m2 == None and m1 != None:
-            x = c2
-            y = m1 * x + c1
-
-    if o1!= None and o2 != None:
-        z = (a2 - a1) / (o1 - o2)
-
-    elif o1!= None or o2 != None and m1 == None or m2 == None:
-        if o1 == None:
-            z = a1
-            y = o2 * z + a2
-        elif o2 == None:
-            z = a2
-            y = o1 * z + a1
-
-    return [x, y, z]
-
-
-def check_equation(point, eqn):
-    #test function to see if the line equation is correct using a set of coordinates
-    error_val = 0.005
-    m1, c1 = eqn[0]
-    n1, b1 = eqn[1]
-    o1, a1 = eqn[2]
-    x, y, z = point
-
-    check_xy = m1 * x + c1 - y
-
-    if error_val > check_xy or check_xy > -error_val:
-        test1 = True
-    else:
-        test1 = False
-
-    check_xz = n1 * x + b1 - z
-
-    if error_val > check_xz or check_xz > -error_val:
-        test2 = True
-    else:
-        test2 = False
-
-    check_zy = o1 * z + a1 - y
-
-    if error_val >  check_zy or check_zy > -error_val:
-        test3 = True
-    else:
-        test3 = False
-
-    if test1 and test2 and test3 == True:
-        is_on_line = True
-    else:
-        is_on_line = False
-
-    return is_on_line
-
-
-def vector_ang(vec_1, vec_2):
-    """
-    Calculate the angle between two vectors
-    """
-    # While loop added due to value error generated if two vectors were the same but float nums
-    while True:
-        try:
-            dot_prod = sum(map(lambda a, b: a * b, vec_1, vec_2))
-            mod_vec_1 = math.sqrt(sum(map(lambda c: c**2, vec_1)))
-            mod_vec_2 = math.sqrt(sum(map(lambda c: c**2, vec_2)))
-            cos_ang_1 = dot_prod / (mod_vec_1 * mod_vec_2)
-            ang_1 = math.degrees(math.acos(cos_ang_1))
-
-        except ValueError:
-            ang_1 = 0.0
-            break
-
-        else:
-            break
-
-    return(ang_1)
-
-
-def angle_check(normal_angle, vector_angle, normal):
-    sum_angles = normal_angle + vector_angle
-    if abs(180 - sum_angles) > abs(vector_angle - normal_angle):
-        normal_angle = 180 - normal_angle
-        normal = map(lambda a: -a, normal)
-
-    return normal_angle, normal
-
-
-def correct_normals(data):
-    eqns = equations(data)
-    eqns_2 = copy.deepcopy(eqns)
-    plane_eqns = calc_planes(data)
-    connected = attached_faces(eqns, data)
-    vectors = []
-    points = []
-    angles = []
-
-    for i in range(0, len(connected)):
-        #plane_1 is the plane that the normal to face i lies in and runs through p1_2 & p1_3
-        plane_1 = connected[i][-1:][0]
-
-        if connected[i][0][1][3] == True and connected[i][1][1][3] == True:
-
-            face_2 = connected[i][0][0]-1
-            verts_2 = connected[i][0][1][1:]
-            plane_2 = plane_eqns[face_2][1]
-
-            line_eqn_1_1 = two_plane_intersection(plane_1, plane_2)
-
-            place_1 = [data[2][face_2].index(verts_2[0]), data[2][face_2].index(verts_2[1])]
-
-            face_3 = connected[i][1][0] - 1
-            verts_3 = connected[i][1][1][1:]
-            plane_3 = plane_eqns[face_3][1]
-
-            line_eqn_2_1 = two_plane_intersection(plane_1, plane_3)
-
-            place_2 = [data[2][face_3].index(verts_3[0]), data[2][face_3].index(verts_3[1])]
-
-        elif connected[i][0][1][3] == False and connected[i][1][1][3] == True:
-            face_2 = connected[i][1][0]-1
-            verts_2 = connected[i][1][1][1:]
-            plane_2 = plane_eqns[face_2][1]
-
-            line_eqn_1_1 = two_plane_intersection(plane_1, plane_2)
-
-            place_1 = [data[2][face_2].index(verts_2[0]), data[2][face_2].index(verts_2[1])]
-
-        elif connected[i][0][1][3] == True and connected[i][1][1][3] == False:
-            face_2 = connected[i][0][0]-1
-            verts_2 = connected[i][0][1][1:]
-            plane_2 = plane_eqns[face_2][1]
-
-            line_eqn_1_1 = two_plane_intersection(plane_1, plane_2)
-
-            place_1 = [data[2][face_2].index(verts_2[0]), data[2][face_2].index(verts_2[1])]
-
-        if connected[i][0][1][3] == True and connected[i][1][1][3] == True:
-            p1_2 = connected[i][0][1][0]
-            p1_3 = connected[i][1][1][0]
-            # If condition below chooses the 2 possible line equation depending on the index of the vertices
-            if 0 in place_1:
-                if 1 in place_1:
-                    # print '0'
-                    line_eqn_1_2_1 = eqns[face_2][2][2]
-                    line_eqn_1_2_2 = eqns[face_2][3][2]
-
-                elif 2 in place_1:
-                    # print '1'
-                    line_eqn_1_2_1 = eqns[face_2][1][2]
-                    line_eqn_1_2_2 = eqns[face_2][2][2]
-
-            else:
-                # print '2'
-                line_eqn_1_2_1 = eqns[face_2][1][2]
-                line_eqn_1_2_2 = eqns[face_2][3][2]
-
-            if 0 in place_2:
-
-                if 1 in place_2:
-                    line_eqn_2_2_1 = eqns[face_3][2][2]
-                    line_eqn_2_2_2 = eqns[face_3][3][2]
-
-                elif 2 in place_2:
-                    line_eqn_2_2_1 = eqns[face_3][1][2]
-                    line_eqn_2_2_2 = eqns[face_3][2][2]
-
-            else:
-                line_eqn_2_2_1 = eqns[face_3][1][2]
-                line_eqn_2_2_2 = eqns[face_3][3][2]
-
-
-        elif connected[i][0][1][3] == False and connected[i][1][1][3] == True:
-            p1_2 = connected[i][1][1][0]
-            p1_3 = connected[i][0][1][0]
-
-            if 0 in place_1:
-                if 1 in place_1:
-                    line_eqn_1_2_1 = eqns[face_2][2][2]
-                    line_eqn_1_2_2 = eqns[face_2][3][2]
-
-                elif 2 in place_1:
-                    line_eqn_1_2_1 = eqns[face_2][1][2]
-                    line_eqn_1_2_2 = eqns[face_2][2][2]
-
-            else:
-                line_eqn_1_2_1 = eqns[face_2][1][2]
-                line_eqn_1_2_2 = eqns[face_2][3][2]
-
-
-        elif connected[i][0][1][3] == True and connected[i][1][1][3] == False:
-            p1_2 = connected[i][0][1][0]
-            p1_3 = connected[i][1][1][0]
-
-            if 0 in place_1:
-                if 1 in place_1:
-                    line_eqn_1_2_1 = eqns[face_2][2][2]
-                    line_eqn_1_2_2 = eqns[face_2][3][2]
-
-                elif 2 in place_1:
-                    line_eqn_1_2_1 = eqns[face_2][1][2]
-                    line_eqn_1_2_2 = eqns[face_2][2][2]
-
-            else:
-                line_eqn_1_2_1 = eqns[face_2][1][2]
-                line_eqn_1_2_2 = eqns[face_2][3][2]
-
-        if connected[i][0][1][3] == True and connected[i][1][1][3] == True:
-            p2_1 = line_intersection(line_eqn_1_1, line_eqn_1_2_1)
-            p2_2 = line_intersection(line_eqn_1_1, line_eqn_1_2_2)
-
-            if check_equation(p2_1, line_eqn_1_1) == True:
-                p2 = p2_1
-                line_eqn_1_2 = line_eqn_1_2_1
-
-            elif check_equation(p2_2, line_eqn_1_1) == True:
-                p2 = p2_2
-                line_eqn_1_2 = line_eqn_1_2_2
-
-            p3_1 = line_intersection(line_eqn_2_1, line_eqn_2_2_1)
-            p3_2 = line_intersection(line_eqn_2_1, line_eqn_2_2_2)
-
-            if check_equation(p3_1, line_eqn_2_1) == True:
-                p3 = p3_1
-                line_eqn_2_2 = line_eqn_2_2_1
-
-            elif check_equation(p3_2, line_eqn_2_1) == True:
-                p3 = p3_2
-                line_eqn_2_2 = line_eqn_2_2_2
-
-        else:
-            p2_1 = line_intersection(line_eqn_1_1, line_eqn_1_2_1)
-            p2_2 = line_intersection(line_eqn_1_1, line_eqn_1_2_2)
-
-            if check_equation(p2_1, line_eqn_1_1) == True:
-                p2 = p2_1
-                line_eqn_1_2 = line_eqn_1_2_1
-
-            elif check_equation(p2_2, line_eqn_1_1) == True:
-                p2 = p2_2
-                line_eqn_1_2 = line_eqn_1_2_2
-
-        face_2_no = face_2 + 1
-        face_3_no = face_3 + 1
-
-        if connected[i][0][1][3] == True:
-            vec_1_2 = map(lambda a, b: a - b, p1_3, p1_2)
-            vec_2 = map(lambda a, b: a - b, p2, p1_2)
-
-            normal_1 = eqns[i][4]
-            normal_2 = vector_in_plane(plane_1, eqns[face_2][4])
-
-            angle_1 = vector_ang(normal_1, normal_2)
-            angle_1_1 = vector_ang(vec_1_2, vec_2)
-            angle_1_2 = vector_ang(vec_2, normal_2)
-            angle_1_3 = vector_ang(vec_1_2, normal_1)
-
-            angle_1, eqns_2[face_2][4] = angle_check(angle_1, angle_1_1, normal_2)
-
-            vectors_1 = [face_2_no, vec_1_2, vec_2]
-
-            if connected[i][1][1][3] == True:
-                vec_1_3 = map(lambda a, b: a - b, p1_2, p1_3)
-                vec_3 = map(lambda a, b: a - b, p3, p1_3)
-
-                vectors_2 = [face_3_no, vec_1_3, vec_3]
-
-                normal_3 = vector_in_plane(plane_1, eqns[face_3][4])
-
-                angle_2 = vector_ang(normal_1, normal_3)
-                angle_2_1 = vector_ang(vec_1_3, vec_3)
-                angle_2_2 = vector_ang(vec_3, normal_3)
-                angle_2_3 = vector_ang(vec_1_3, normal_1)
-                angle_2, eqns_2[face_3][4] = angle_check(angle_2, angle_2_1, normal_3)
-
-                vectors.append([vectors_1, vectors_2])
-
-                points.append([[face_2_no, p1_2, p2, line_eqn_1_1, line_eqn_1_2], [face_3_no, p1_3, p3, line_eqn_2_1, line_eqn_2_2]])
-
-                angles.append([[face_2_no, angle_1, angle_1_1, angle_1_2, angle_1_3], [face_3_no, angle_2, angle_2_1, angle_2_2, angle_2_3]])
-
-            elif connected[i][1][1][3] == False:
-                vectors.append([vectors_1])
-                points.append([[face_2_no, p1_2, p2, p1_3, line_eqn_1_1, line_eqn_1_2]])
-                angles.append([[face_2_no, angle_1, angle_1_1, angle_1_2, angle_1_3]])
-
-        elif connected[i][0][1][3] == False:
-            vec_1_2 = map(lambda a, b: a - b, p1_3, p1_2)
-            vec_2 = map(lambda a, b: a - b, p2, p1_2)
-
-            normal_1 = eqns[i][4]
-            normal_2 = vector_in_plane(plane_1, eqns[face_2][4])
-
-            angle_1 = vector_ang(normal_1, normal_2)
-            angle_1_1 = vector_ang(vec_1_2, vec_2)
-            angle_1_2 = vector_ang(vec_2, normal_2)
-            angle_1_3 = vector_ang(vec_1_2, normal_1)
-            angle_1, eqns_2[face_2][4] = angle_check(angle_1, angle_1_1, normal_2)
-
-            vectors_1 = [face_2_no, vec_1_2, vec_2]
-            vectors.append([vectors_1])
-            points.append([[face_2_no, p1_2, p2, p1_3, line_eqn_1_1, line_eqn_1_2]])
-            angles.append([[face_2_no, angle_1, angle_1_1, angle_1_2, angle_1_3]])
-
-    return(vectors, points, angles, eqns_2)
-
-
-def get_intersect_face_plane(coord_1, coord_2, data, aligned_plane):
-    global int_faces
-    int_faces = []
-    eqns = equations(data)
-
-    if len(aligned_plane) == 0:
-        coord_3 = map(lambda a, b: a + b, coord_1, [0.0, 10.0, 0.0])
-        plane = plane_cutter(coord_1, coord_2, coord_3)[3]
-
-    else:
-        plane = aligned_plane
-
-    intersecting = []
-
-    for i in range(0, len(eqns)):
-        int_points = []
-
-        for n in range(1, len(eqns[i]) - 1):
-            point_1 = plane_intersect(plane, eqns[i][n][2] )
-            face = eqns[i][0]
-
-            if point_1 != None:
-                vert_no = eqns[i][n][0]
-                vert_1 = data[1][vert_no - 1]
-                intersecting = []
-
-                if n < 3:
-                    next_vert = eqns[i][n + 1][0] - 1
-                    vert_2 = data[1][next_vert]
-
-                else:
-                    next_vert = eqns[i][n - 2][0] - 1
-                    vert_2 = data[1][next_vert]
-
-                vec_c1_p1 = map(lambda a, b: a - b, point_1, coord_1)
-                vec_c1_c2 = map(lambda a, b: a - b, coord_2, coord_1)
-                vec_c1_c2_p1 = map(lambda a, b: a - b, vec_c1_c2, vec_c1_p1)
-
-                for m in range(0, len(vert_1)):
-                    if vec_c1_c2[m] >= vec_c1_p1[m] >= 0.0 or vec_c1_c2[m] <= vec_c1_p1[m] <= 0.0:
-                        if vert_1[m] <= point_1[m] <= vert_2[m] or vert_1[m] >= point_1[m] >=  vert_2[m]:
-                            intersecting.append(True)
-                        else:
-                            intersecting.append(False)
-
-                    else:
-                        intersecting.append(False)
-
-                if intersecting[0] == True and intersecting[2] == True:
-                    int_points.append([vert_no, next_vert + 1, point_1])
-
-        if len(int_points) > 1:
-            int_faces.append([i + 1, int_points])
-
-    return int_faces, plane#, intersecting
-
-
-
-def align_plane(int_faces, plane, data, coord1, coord2):
-    global verts_above, verts_below, centre_above, centre_below, normal_to_plane, centre_p, norm_vec_aligned
-    try:
-        verts_above = []
-        verts_below = []
-        c1, c2 = coord1, coord2
-        normal_to_plane = plane[0:3]
-        mod_norm = math.sqrt(sum(map(lambda a: a**2, normal_to_plane)))
-        normal_to_plane = map(lambda a: a / mod_norm, normal_to_plane)
-
-        for i in range(0, len(int_faces)):
-            for n in range(0, len(int_faces[i][1])):
-                for k in range(0, len(int_faces[i][1][n]) - 1):
-                    vert_no = int_faces[i][1][n][k] - 1
-                    vert = data[1][vert_no]
-                    cut_p = int_faces[i][1][n][-1]
-                    vec = map(lambda a, b: a - b, vert, cut_p)
-                    dot_prod = sum(map(lambda a, b: a * b, normal_to_plane, vec))
-
-                    if dot_prod > 0:
-                        verts_above.append(vert)
-
-                    elif dot_prod < 0:
-                        verts_below.append(vert)
-
-        centre_above = calc_centre(verts_above)
-        centre_below = calc_centre(verts_below)
-        line_eqn = calc_line_eqn_2(centre_above, centre_below)
-        centre_p = plane_intersect(plane, line_eqn)
-        norm_vec_aligned = map(lambda a, b: a - b, centre_above, centre_p)
-        plane = plane_from_vector(norm_vec_aligned, centre_p)
-
-        line_eqn_c1 = calc_line_eqn(norm_vec_aligned, c1)
-        line_eqn_c2 = calc_line_eqn(norm_vec_aligned, c2)
-
-        c1 = plane_intersect(plane, line_eqn_c1)
-        c2 = plane_intersect(plane, line_eqn_c2)
-    
-    except Exception as error:
-        if error:
-            print error
-
-    return plane, c1, c2
-
-
-def calc_measurement(int_faces):
-    """
-    Calculates the total measurement e.g. around the waist
-    int_faces - list of faces generated by the intersect function
-    """
-    measurement = 0
-    while True:
-        try:
-            for i in range(0, len(int_faces)):
-                point_1 = int_faces[i][1][0][2]
-                point_2 = int_faces[i][1][1][2]
-                measurement += point_distance(point_1, point_2)
-
-        except IndexError:
-            break
-
-        else:
-            break
-
-    return(measurement)
-
-
-def vector_length(vector):
-    vec_length = math.sqrt(sum(map(lambda x: x**2, vector)))
-
-    return(vec_length)
-
-
-def sum_vectors(vec_1, vec_2):
-    vec_sum = map(lambda a, b: a + b, vec_1, vec_2)
-
-    return(vec_sum)
-
-
-def final_norm(line_length, vert_to_cut_point, offset):
-    #Function to calculate the amount to move the vertex at each end of the line
-    tan_ang_1 = offset / line_length
-    c1 = vert_to_cut_point
-    c = line_length
-
-    #Scalar movement amount perpendicular to the connecting the 2 vertices
-    perp_norm_scal_1 = offset +  c1 * (1 - 2 * c1 / c)**2 * tan_ang_1
-    perp_norm_scal_2 = offset - (c - c1) * (perp_norm_scal_1 - offset) /c1
-
-    return perp_norm_scal_1, perp_norm_scal_2
-
-
-def normal_move_calc(total_length, move_dist, l_1):
-    #function to calculate the distance to move the vertex perpendicular to the line between it and a connected point
-    total_length, move_dist, l_1 = map(float, (total_length, move_dist, l_1))
-    tan_ang_1 = move_dist / total_length
-
-    vert_1_dist = move_dist + l_1 * (1 - (2 * (l_1 / total_length))) * tan_ang_1
-    vert_2_dist = move_dist - (total_length - l_1) * ((vert_1_dist - move_dist) / l_1)
-
-    vert_1_dist = vert_1_dist ** 2 / move_dist
-    vert_2_dist = vert_2_dist ** 2 / move_dist
-
-    return [vert_1_dist, vert_2_dist]
-
-
-def plane_from_vector(vector, vert_1):
-    #Calculates the plane equation perpendicular to a vector passing through a vertex
-    x, y, z = vector
-    d = ((vert_1[0] * x) + (vert_1[1] * y) + (vert_1[2] * z))
-    plane_eqn = [x, y, z, d]
-
-    return plane_eqn
-
-
-def move_vertices(int_faces, plane_eqn, measurement_2, data, connected_faces=None):
-    face_eqns = equations(data)
-    plane_eqn = plane_eqn[-1]
-    measurement_1 = calc_measurement(int_faces)
-    ratio = measurement_2 / measurement_1
-    delta_l = measurement_2 - measurement_1
-    delta_h, delta_tan_ang, sum_ang = 0.0, 0.0, 0.0
-    offset_calc = {'faces':{}}
-    angles, lines, normals, move_scale, offset, moved = {}, {}, {}, {}, {}, {}
-    move_vecs = {'vectors' : {}, 'numbers' : {}}
-    test_dist = delta_l / len(int_faces)
-    if connected_faces is None:
-        connected_faces = face_connects(data)
-
-    for i in range(0, len(int_faces)):
-        vert_1_no = int_faces[i][1][0][0]
-        vert_2_no = int_faces[i][1][0][1]
-        vert_3_no = int_faces[i][1][1][0]
-        vert_4_no = int_faces[i][1][1][1]
-
-        move_vecs['vectors'][str(vert_1_no)] = [0.0, 0.0, 0.0]
-        move_vecs['vectors'][str(vert_2_no)] = [0.0, 0.0, 0.0]
-        move_vecs['vectors'][str(vert_3_no)] = [0.0, 0.0, 0.0]
-        move_vecs['vectors'][str(vert_4_no)] = [0.0, 0.0, 0.0]
-
-        move_vecs['numbers'][str(vert_1_no)] = 0
-        move_vecs['numbers'][str(vert_2_no)] = 0
-        move_vecs['numbers'][str(vert_3_no)] = 0
-        move_vecs['numbers'][str(vert_4_no)] = 0
-
-    for i in range(0, len(int_faces)):
-        face = int_faces[i][0]
-        face_norm = face_eqns[face - 1][4]
-
-        vert_1_no = int_faces[i][1][0][0]
-        vert_2_no = int_faces[i][1][0][1]
-        vert_3_no = int_faces[i][1][1][0]
-        vert_4_no = int_faces[i][1][1][1]
-
-        vert_1 = data[1][vert_1_no - 1]
-        vert_2 = data[1][vert_2_no - 1]
-        vert_3 = data[1][vert_3_no - 1]
-        vert_4 = data[1][vert_4_no - 1]
-
-        vector_1_2 = map(lambda a, b: a - b, vert_2, vert_1)
-        vector_3_4 = map(lambda a, b: a - b, vert_4, vert_3)
-
-        point_1 = int_faces[i][1][0][2]
-        point_2 = int_faces[i][1][1][2]
-
-        #vector connecting the two points cutting through the face
-        l_1 = map(lambda a, b: a - b, point_2, point_1)
-        l_2 = map(lambda a, b: a - b, point_1, point_2)
-        length_1 = vector_length(l_1)
-
-        d_p1_v1 = point_distance(vert_1, point_1)
-        d_p2_v3 = point_distance(vert_3, point_2)
-        d_1_2 = point_distance(vert_1, vert_2)
-        d_3_4 = point_distance(vert_3, vert_4)
-
-        av_norm_1 = avg_normal((vert_1_no), data, face_eqns, connected_faces)
-        av_norm_2 = avg_normal((vert_2_no), data, face_eqns, connected_faces)
-        av_norm_3 = avg_normal((vert_3_no), data, face_eqns, connected_faces)
-        av_norm_4 = avg_normal((vert_4_no), data, face_eqns, connected_faces)
-
-        #calculate the planes perpendicular to the lines connecting vertices:
-        plane_1 = plane_from_vector(vector_1_2, vert_1)
-        plane_2 = plane_from_vector(vector_1_2, vert_2)
-        plane_3 = plane_from_vector(vector_3_4, vert_3)
-        plane_4 = plane_from_vector(vector_3_4, vert_4)
-
-        # project each normal onto its corresponding perpendiculr plane
-        av_norm_to_plane_1 = vector_in_plane(plane_1, av_norm_1)
-        av_norm_to_plane_2 = vector_in_plane(plane_2, av_norm_2)
-        av_norm_to_plane_3 = vector_in_plane(plane_3, av_norm_3)
-        av_norm_to_plane_4 = vector_in_plane(plane_4, av_norm_4)
-
-        ang_1_V = math.radians(vector_ang(av_norm_to_plane_1, av_norm_1))
-        ang_2_V = math.radians(vector_ang(av_norm_to_plane_2, av_norm_2))
-        ang_3_V = math.radians(vector_ang(av_norm_to_plane_3, av_norm_3))
-        ang_4_V = math.radians(vector_ang(av_norm_to_plane_4, av_norm_4))
-
-        ang_1_2 = math.radians(vector_ang(av_norm_to_plane_1, av_norm_to_plane_2))
-        ang_3_4 = math.radians(vector_ang(av_norm_to_plane_3, av_norm_to_plane_4))
-
-        norm_ang_1_2 = math.radians(vector_ang(av_norm_to_plane_1, face_norm))
-        norm_ang_3_4 = math.radians(vector_ang(av_norm_to_plane_3, face_norm))
-
-        cut_ang_1_2 = (d_p1_v1 / d_1_2) * ang_1_2
-        cut_ang_3_4 = (d_p2_v3 / d_3_4) * ang_3_4
-
-        m1, m2 = normal_move_calc(d_1_2, test_dist, d_p1_v1)
-        m3, m4 = normal_move_calc(d_3_4, test_dist, d_p2_v3)
-
-        m1 = (m1 / math.cos(cut_ang_1_2)) * math.cos(ang_1_V)
-        m2 = (m2 / math.cos(ang_1_2 - cut_ang_1_2)) * math.cos(ang_2_V)
-        m3 = (m3 / math.cos(cut_ang_3_4)) * math.cos(ang_3_V)
-        m4 = (m4 / math.cos(ang_3_4 - cut_ang_3_4)) * math.cos(ang_4_V)
-
-        m1_vec = map(lambda a: a * m1, av_norm_1)
-        m2_vec = map(lambda a: a * m2, av_norm_2)
-        m3_vec = map(lambda a: a * m3, av_norm_3)
-        m4_vec = map(lambda a: a * m4, av_norm_4)
-
-        move_vecs['vectors'][str(vert_1_no)] = map(lambda a, b: a + b, move_vecs['vectors'][str(vert_1_no)], m1_vec)
-        move_vecs['vectors'][str(vert_2_no)] = map(lambda a, b: a + b, move_vecs['vectors'][str(vert_2_no)], m2_vec)
-        move_vecs['vectors'][str(vert_3_no)] = map(lambda a, b: a + b, move_vecs['vectors'][str(vert_3_no)], m3_vec)
-        move_vecs['vectors'][str(vert_4_no)] = map(lambda a, b: a + b, move_vecs['vectors'][str(vert_4_no)], m4_vec)
-
-        move_vecs['numbers'][str(vert_1_no)] += 1
-        move_vecs['numbers'][str(vert_2_no)] += 1
-        move_vecs['numbers'][str(vert_3_no)] += 1
-        move_vecs['numbers'][str(vert_4_no)] += 1
-
-        angles['face ' + str(face)] = {}
-        angles['face ' + str(face)]['vert ' + str(vert_1_no)] = {'av norm': av_norm_1, 'av norm in plane': av_norm_to_plane_1}
-        angles['face ' + str(face)]['vert ' + str(vert_2_no)] = {'av norm': av_norm_2, 'av norm in plane': av_norm_to_plane_2}
-        angles['face ' + str(face)]['vert ' + str(vert_3_no)] = {'av norm': av_norm_3, 'av norm in plane': av_norm_to_plane_3}
-        angles['face ' + str(face)]['vert ' + str(vert_4_no)] = {'av norm': av_norm_4, 'av norm in plane': av_norm_to_plane_4}
-
-    for i, v in move_vecs['vectors'].items():
-        vert_no = int(i)
-        denominator = move_vecs['numbers'][str(vert_no)]
-        move_vec = map(lambda a: a / denominator, move_vecs['vectors'][str(vert_no)])
-
-        data[1][vert_no - 1] = sum_vectors(data[1][vert_no - 1], move_vec)
-
-    return data
-
-
-def rotate_data(coord, angle_z):
-    angle_z = math.radians(angle_z)
-    x1, y1, z1 = coord
-    x2 = x1 * math.cos(angle_z) + y1 * math.sin(angle_z)
-    y2 = x1 * math.sin(angle_z) - y1 * math.cos(angle_z)
-    z2 = z1
-
-    return [x2, y2, z2]
-
-
-def delta_z(data): 
-    #Calculates the distance between heighest & lowest vertex
-    delta_z_list = []
-
-    for i in range(len(data[1])):
-        delta_z_list.append(data[1][i][2])
-
-    min_point = delta_z_list.index(min(delta_z_list))
-    max_point = delta_z_list.index(max(delta_z_list))
-
-    del_z = max(delta_z_list) - min(delta_z_list)
-    del_z_min = min(delta_z_list)
-
-    return(del_z, del_z_min)
-
-def delta_x(data): 
-    #Calculates the distance between heighest & lowest vertex
-    delta_x_list = []
-
-    for i in range(len(data[1])):
-        delta_x_list.append(data[1][i][0])
-
-    min_point = delta_x_list.index(min(delta_x_list))
-    max_point = delta_x_list.index(max(delta_x_list))
-
-    #return(min(delta_z_list), max(delta_z_list), min_point, max_point)
-
-    del_x = max(delta_x_list) - min(delta_x_list)
-    del_x_min = min(delta_x_list)
-
-    return(del_x, del_x_min)
-
-
-def calc_centre(data_verts):
-    #calculates the centre point of all datapoints
-    centre = [0.0, 0.0, 0.0]
-    for i in range(0, len(data_verts)):
-        centre = map(lambda a, b: a + b, centre, data_verts[i])
-
-    centre = map(lambda a: a / len(data_verts), centre)
-
-    return centre
-
-
-
-def calc_face_centre(face, data):
-    centre = [0.0, 0.0, 0.0]
-    data_verts = data[2][face]
-
-    for i in range(0, len(data_verts)):
-        vert_no = data[2][face][i]
-        vert = data[1][vert_no - 1]
-        centre = map(lambda a, b: a + b, centre, vert)
-
-    centre = map(lambda a: a / len(data_verts), centre)
-
-    return centre
-
-
-def screen_point_convertor(point, scale, min_z):
     point = map(float, point)
-    point[0] = int(point[0] * scale + Screen_width / 2)
-    point[2] = int( Screen_height / 2 - (point[2] - min_z) * scale  )
-    del(point[1])
-
-    return point
-
-
-def data_point_screen_convertor(point, scale, min_z):
-    point = map(float, point)
-    point[0] = (point[0] - Screen_width / 2) / scale
-    point.append(min_z + (Screen_height / 2 - point[1]) / scale)
+    print(centre_point)
+    centre_point = rotate_data(centre_point, angle)
+    print(centre_point)
+    point[0] = (point[0] - screen_width / 2  + rel_pos[0]) / scale + centre_point[0]
+    z_coord = mid_z + (screen_height / 2 + rel_pos[1] - point[1]) / scale
+    point.append(z_coord)
     point[1] = 0.0
+
+    point = rotate_data(point, angle, centre_point)
 
     return point
 
 
 def sort_polygons(polygons):
-    return polygons[2][1]
+    return polygons[2][2]
 
+def calc_light_colour(vector, face_normal, data, colour, intensity=1):
+    """
+    Calculates the colour of a surface given a light direction vector & base colour
+    """
+    light_dir_scale = math.sqrt(sum(vector))
+    light_dir_normal = list(map(lambda c: c / light_dir_scale, vector))
+    dot_prod = abs(sum(map(lambda a, b: a * b, face_normal, light_dir_normal))) ** 2
+    colour = list(map(lambda a: light_colour(dot_prod, a, intensity), colour))
 
-def display_model(data, display, angle, centre_point, scale, min_z, show_face_no, show_av_norms, show_edges):
-    #Draws the polygons of each face as different colours
+    return colour
 
-    polygon_list = []
-    #height = pygame.display.get_height()
-    centre_point = rotate_data(centre_point, angle)
-    #eqns_2 = correct_normals(data)[-1:][0]
-    eqns_2 = equations(data)    
+def light_colour(dot_prod, value, intensity=1):
+    colour = int(dot_prod * value * intensity)
+    if colour > 255:
+        colour = 255
+    return colour
 
-    for i in range(0, len(data[2])):
-        polygon = []
-        face_no = i
+def new_surface(screen_size, alpha=100, fill_colour=(0, 0, 0)):
+    """
+    Returns a new child surface
+    """
+    child_surface = pygame.Surface(screen_size)
+    child_surface.set_alpha(alpha)                # alpha level
+    child_surface.fill(fill_colour)
 
-        for n in range(0, len(data[2][i])):
-            vert_no = data[2][i][n]
-            points = rotate_data(data[1][(vert_no - 1)], angle)
-            points = screen_point_convertor(points, scale, min_z)
-            normal = eqns_2[i][4]
-            normal = rotate_data(normal, angle)
+    return child_surface
 
-            if normal[1] > 0.0:
-                polygon.append(points)
+def display_model(data, display, angle, centre_point, scale, mid_z, show_face_no, show_av_norms,
+                  show_edges, show_back_faces, screen_height, screen_width, avg_normals=None, rel_pos=(0, 0)):
+    """
+    Draws the polygons of each face as different colours
+    """
+    centre_point = rotate_data(centre_point, angle, centre_point)
+    eqns = equations(data)
+    light_dir = [0.5, 1.0, 0.0]     # Light direction vector
+    face_base_colour = (255, 40, 180) # Base colour for faces
+    polygon_list_front, polygon_list_back = _sort_model_data(data, eqns, scale, angle, centre_point, screen_height, screen_width, rel_pos, show_back_faces)
 
-        if len(polygon) > 2:
-            polygon_center = calc_face_centre(face_no, data)
-            polygon_center = rotate_data(polygon_center, angle)
-            polygon_list.append([i, polygon, polygon_center, normal])
+    if show_back_faces == True:
+        trans_surface = new_surface((screen_width, screen_height), 200, (50, 50, 50))
+        _ = _draw_model(polygon_list_back, face_base_colour, light_dir, data, eqns, trans_surface, angle, centre_point,
+            scale, mid_z, show_face_no, show_av_norms, show_edges, screen_height, screen_width, avg_normals, rel_pos)
+        # Create new surface to allow displaying back faces using transparency
+        
+        display.blit(trans_surface, (0, 0))
 
-    polygon_list = sorted(polygon_list, key=sort_polygons)
+    avg_normals =_draw_model(polygon_list_front, face_base_colour, light_dir, data, eqns, display, angle, centre_point,
+        scale, mid_z, show_face_no, show_av_norms, show_edges, screen_height, screen_width, avg_normals, rel_pos)
 
+    return scale, mid_z, polygon_list_front, avg_normals
+
+def _draw_model(polygon_list, face_base_colour, light_dir, data, eqns, display, angle, centre_point,
+    scale, mid_z, show_face_no, show_av_norms, show_edges, screen_height, screen_width, avg_normals=None, rel_pos=(0, 0)):
+    """
+    Draws polygons of model
+    """
+    edge_colour = face_base_colour
     for i in range(0, len(polygon_list)):
         polygon = polygon_list[i][1]
         face_no = polygon_list[i][0]
         normal = polygon_list[i][3]
-        # if face_no == 105:
-        #     print angle
-        #     print normal
 
         if len(polygon) > 0:
-            dot_prod = abs(sum(map(lambda a, b: a * b, normal, [0.0, 1.0, 0.0])))
-            dot_prod = dot_prod ** 2
-            # print dot_prod
             colour = int(255 * i / len(data[2]))
-            colour_1 = int(200 * dot_prod)
-            colour_2 = int(255 * dot_prod)
-            pygame.draw.polygon(display, (255 , colour_2, 255 - colour_1), polygon, 0)
+            face_light_colour = calc_light_colour(light_dir, normal, data, face_base_colour, 5)
+            pygame.draw.polygon(display, face_light_colour, polygon, 0)
 
-            if show_face_no == True:
+            if show_face_no == True: 
                 polygon_center = calc_face_centre(face_no, data)
-                polygon_center = rotate_data(polygon_center, angle)
-                polygon_center = screen_point_convertor(polygon_center, scale, min_z)
-                text2((face_no+1), polygon_center, (255, colour, 255 - colour))
+                # polygon_center = rotate_data(polygon_center, angle, centre_point)
+                # polygon_center = model_coords_convertor(polygon_center, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
+                simple_text(display, (face_no+1), polygon_center, (255, colour, 255 - colour))
 
             if show_edges == True:
                 for k in range(0, len(polygon)):
                     if k == len(polygon) - 1:
-                        pygame.draw.line(display, (0, 255, 0), polygon[k], polygon[0], 1)
+                        pygame.draw.line(display, edge_colour, polygon[k], polygon[0], 1)
                     else:
-                        pygame.draw.line(display, (0, 255, 0), polygon[k], polygon[k+1], 1)
+                        pygame.draw.line(display, edge_colour, polygon[k], polygon[k+1], 1)
 
         if show_av_norms == True:
-            draw_av_normals(data, eqns_2, scale, angle, min_z, display)
-    return scale, min_z, polygon_list
+            avg_normals = draw_avg_normals(data, eqns, scale, angle, centre_point, mid_z, display, screen_height, screen_width, avg_normals, rel_pos)
 
-def draw_av_normals(data, eqns, scale, angle, min_z, display):
-    av_normals = calculate_all_avg_normals(data, eqns)
-    for i in range(0, len(av_normals)):
-        av_norm_rotated = rotate_data(av_normals[i], angle)
+    return avg_normals
+
+def _sort_model_data(data, eqns, scale, angle, centre_point, screen_height,
+    screen_width, rel_pos, show_back_faces=False):
+    """
+    Converts the data into list of polygons sorted by nearest to furthest in viewing plane
+    """
+    polygon_list_front = []
+    polygon_list_back = []
+    for face_no in range(0, len(data[2])):
+        polygon_front = []
+        polygon_back = []
+
+        for idx in range(0, len(data[2][face_no])):
+            # Loop through the vertices of each polygon
+            vert_no = data[2][face_no][idx]
+            # vertex = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
+            vertex = data[1][(vert_no - 1)]
+            vertex = model_coords_convertor(vertex, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
+            
+            normal = rotate_data(eqns[face_no][4], angle)
+
+            # whichever index is used is the one removed when converting between 3d > 2d becomes the value
+            # used to determine whether the direction of view
+            if normal[2] > 0.0:
+                # Only display polygons with normal pointing towards the view
+                polygon_front.append(vertex)
+            elif normal[2] < 0.0 and show_back_faces:
+                polygon_back.append(vertex)
+
+        if len(polygon_front) > 2:
+            polygon_center = calc_face_centre(face_no, data)
+            polygon_center = rotate_data(polygon_center, angle, centre_point)
+            polygon_list_front.append([face_no, polygon_front, polygon_center, normal])
+
+        if len(polygon_back) > 2:
+            polygon_center = calc_face_centre(face_no, data)
+            polygon_center = rotate_data(polygon_center, angle, centre_point)
+            polygon_list_back.append([face_no, polygon_back, polygon_center, normal])
+
+    polygon_list_front = sorted(polygon_list_front, key=sort_polygons)
+    polygon_list_back = sorted(polygon_list_back, key=sort_polygons)
+
+    return polygon_list_front, polygon_list_back
+
+def draw_avg_normals(data, eqns, scale, angle, centre_point, mid_z, display, screen_height,
+    screen_width, avg_normals=None, rel_pos=(0, 0)):
+    """
+    Displays the average normal of faces surrounding a vertex
+    """
+    normal_colour = (255, 255, 255)
+    normal_disp_size = 30
+
+    if avg_normals == None:
+        avg_normals = calculate_all_avg_normals(data, eqns)
+    for i in range(0, len(avg_normals)):
+        av_norm_rotated = rotate_data(avg_normals[i], angle, centre_point)
         if av_norm_rotated[1] >= 0:
             p1 = data[1][i]
-            normal = map(lambda a: a * 30 / scale , av_normals[i])
+            normal = map(lambda a: a * normal_disp_size / scale , avg_normals[i])
             p2 = map(lambda a, b: a + b, p1, normal)
 
-            p1 = rotate_data(p1, angle)
-            p1 = screen_point_convertor(p1, scale, min_z)
+            # p1 = rotate_data(p1, angle, centre_point)
+            p1 = model_coords_convertor(p1, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
 
-            p2 = rotate_data(p2, angle)
-            p2 = screen_point_convertor(p2, scale, min_z)
+            # p2 = rotate_data(p2, angle, centre_point)
+            p2 = model_coords_convertor(p2, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
 
-            pygame.draw.line(display, [255, 255, 255], p1, p2, 1)
+            pygame.draw.line(display, normal_colour, p1, p2, 1)
+
+    return avg_normals
 
 
-def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z):
-    #Draws the polygons of each face as different colours
-
+def draw_edges(data, display, angle, centre_point, show_av_norms, scale, mid_z,
+screen_height, screen_width, rel_pos=(0, 0)):
+    """
+    Draws the polygons of each face as different colours
+    """
     polygon_list = []
-    centre_point = rotate_data(centre_point, angle)
     eqns_2 = equations(data)
-    # av_normals = []
     colour_black_grey = (50, 50, 50)
-
-    # for i in range(0, len(data[1])):
-    #     av_normal = avg_normal((i + 1), data, eqns_2)
-    #     av_normals.append(av_normal)
 
     for i in range(0, len(data[2])):
         polygon = []
         for n in range(0, len(data[2][i])):
 
             vert_no = data[2][i][n]
-            points = rotate_data(data[1][(vert_no - 1)], angle)
-            points = screen_point_convertor(points, scale, min_z)
+            # points = rotate_data(data[1][(vert_no - 1)], angle, centre_point)
+            points = model_coords_convertor(points, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
             normals = eqns_2[i][4]
             normals = rotate_data(normals, angle)
 
             if normals[1] > 0:
                 polygon.append(points)
-
-        colour = int(255 * i / len(data[2]))
 
         if len(polygon) > 0:
             for k in range(0, len(polygon)):
@@ -1575,136 +255,16 @@ def draw_edges(data, display, angle, centre_point, show_av_norms, scale, min_z):
                 else:
                     pygame.draw.line(display, colour_black_grey, polygon[k], polygon[k+1], 1)
 
-
         polygon_list.append(polygon)
 
-        # for i in range(0, len(av_normals)):
-        #     av_norm_rotated = rotate_data(av_normals[i], angle)
-        #     if show_av_norms == True and av_norm_rotated[1] > 0:
-        #         p1 = data[1][i]
-        #         normal = map(lambda a: a * 30 / scale , av_normals[i])
-        #         p2 = map(lambda a, b: a + b, p1, normal)
 
-        #         p1 = rotate_data(p1, angle)
-        #         p1 = screen_point_convertor(p1, scale, min_z)
-
-        #         p2 = rotate_data(p2, angle)
-        #         p2 = screen_point_convertor(p2, scale, min_z)
-
-        #         pygame.draw.line(display, [255, 0, 0], p1, p2, 2)
-
-
-def cut_lines(points):
+def draw_cut_lines(display, points):
     point_count = len(points)
     if len(points) % 2 != 0:
         point_count -= 1
 
     for i in range(0, point_count, 2):
-        pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i], points[i + 1])
-
-
-def measurement_text(measurement):
-    display = pygame.display.get_surface()
-
-    measurement = int(measurement)
-    measurement = str(measurement)
-
-    fontobj = pygame.font.Font('freesansbold.ttf', 14)
-    textobj = fontobj.render('Measurement = ' + measurement + ' mm', True, [100, 100, 255], [0, 0, 0])
-    textsurf = textobj.get_rect()
-    textsurf.topleft = ( (20), (20) )
-
-    fontobj1 = pygame.font.Font('freesansbold.ttf', 14)
-    textobj1 = fontobj1.render('Change Measurement', True, [100, 100, 255], [50, 50, 50])
-    textsurf1 = textobj1.get_rect()
-    textsurf1.topright = ( (Screen_width - 20), (20) )
-
-    offset = [-5, -5, 5, 5]
-    box = map(lambda a, b: a + b, offset, textsurf1)
-
-    display.blit(textobj, textsurf)
-    # pygame.draw.polygon(display, (255, 0, 255), box, 0)
-    display.blit(textobj1, textsurf1)
-
-
-def convert_list(list_1):
-    # Converts the input from the UI into an integer
-    number = str(list_1).translate(None, ',')
-    number = number.translate(None, ' ')
-    number = number.translate(None, '[')
-    number = number.translate(None, ']')
-    number = int(number)
-
-    return number
-
-
-def measurement_text2(measurement, screen_coord):
-    display = pygame.display.get_surface()
-
-    measurement = str(measurement)
-
-    fontobj = pygame.font.Font('freesansbold.ttf', 14)
-    textobj = fontobj.render('New Measurement = ' + measurement + ' mm', True, [100, 100, 255], [0, 0, 0])
-    textsurf = textobj.get_rect()
-    textsurf.topleft = ( (20 + screen_coord[0]), (20 + screen_coord[1]) )
-
-    display.blit(textobj, textsurf)
-
-
-def text1(text, screen_coord):
-    display = pygame.display.get_surface()
-    text = str(map(int, text))
-
-    fontobj = pygame.font.Font('freesansbold.ttf', 12)
-    textobj = fontobj.render(text + ' mm', True, [100, 100, 255], [0, 0, 0])
-    textsurf = textobj.get_rect()
-    textsurf.topleft = ( (20 + screen_coord[0]), (20 + screen_coord[1]) )
-
-    display.blit(textobj, textsurf)
-
-
-def text2(text, screen_coord, colour):
-    display = pygame.display.get_surface()
-    text = str(text)
-
-    fontobj = pygame.font.Font('freesansbold.ttf', 12)
-    textobj = fontobj.render(text, True, [0, 0, 0], colour)
-    textsurf = textobj.get_rect()
-    textsurf.center = ( (screen_coord[0]), (screen_coord[1]) )
-
-    display.blit(textobj, textsurf)
-
-
-def text3(text, screen_coord, colour):
-    display = pygame.display.get_surface()
-    text = str(text)
-
-    fontobj = pygame.font.Font('freesansbold.ttf', 12)
-    textobj = fontobj.render(text, True, colour, [0, 0, 0])
-    textsurf = textobj.get_rect()
-    textsurf.topleft = ( (20 + screen_coord[0]), (20 + screen_coord[1]) )
-
-    display.blit(textobj, textsurf)
-
-
-def text4(text, screen_coord, colour):
-    display = pygame.display.get_surface()
-
-    if type(text) != 'str':
-        text = str(text)
-    fontobj = pygame.font.Font('freesansbold.ttf', 24)
-    textobj = fontobj.render(text, True, colour, [0, 0, 0])
-    textsurf = textobj.get_rect()
-    textsurf.center = ( screen_coord[0], screen_coord[1] )
-
-    display.blit(textobj, textsurf)
-
-
-def quit_screen():
-    text_pos = [int(Screen_width/2), int(Screen_height/2)]
-    text4('Would you like to save the new model?', text_pos, [255, 50, 50])
-    text_pos_2 = map(lambda a, b: a + b, text_pos, [0, 40])
-    text4('Enter Y/N or C for cancel', text_pos_2, [255, 50, 50])
+        pygame.draw.line(display, (255, 50, 50), points[i], points[i + 1])
 
 def quit_game(data, save):
     if save == True:
@@ -1713,79 +273,271 @@ def quit_game(data, save):
     pygame.quit()
     sys.exit()
 
+def draw_axes(display, angle):
+    # TODO - fix rotation issue
+    """
+    Draws the x, y, z axes on screen
+    """
+    colour = (0, 0, 0)
+    size = 50
+    offset = 50
+    axes = ({'x': (-size, 0, 0)}, {'y': (0, size, 0)}, {'z': (0, 0, size)})
+    axes = ({'x': (-size, 0, 0)}, {'y': (0, size, 0)}, {'z': (0, 0, size)})
+    screen_dims = display.get_size()
+    screen_offset = (size + offset, size + offset)
+    screen_position = sum_vectors(screen_dims, screen_offset, True)
+    for axis in axes:
+        axis_name = axis.keys()[0]
+        coords = axis.values()[0]
+        rotated_coords = rotate_data(coords, angle)
+        del(rotated_coords[2])
+        position = sum_vectors(screen_position, rotated_coords, True)
+        simple_text(display, axis_name, position, colour)
+        pygame.draw.line(display, colour, screen_position, position)
+    # sys.exit()
 
-def create_screen(data_list):
+
+
+def calculate_display_sizes(screen_height, screen_width, data):
+    """
+    Calculates the scale that the model should be displayed at
+    """
+    height = float(screen_height * .95)
+    width = float(screen_width * .95)
+
+    delta_mid_z = calc_delta_z(data)
+    delta_mid_x = calc_delta_x(data)
+
+    scale_z = height / delta_mid_z[0]
+    scale_x = width / delta_mid_x[0]
+
+    if scale_z < scale_x:
+        scale = scale_z
+    else:
+        scale = scale_x
+
+    mid_z = delta_mid_z[1]
+    return scale, mid_z
+
+def move_screen_points(screen_points, mouse_rel_motion):
+    """
+    Moves the list of click points when the user pans
+    """
+    moved_points = []
+    for point_1_2 in screen_points:
+        moved_point = []
+        for point in point_1_2:
+            moved_point.append(map(lambda a, b: a + b, point, mouse_rel_motion))
+            # print("------------------point------------------")
+            # print(mouse_rel_motion)
+            # print(point)
+            # print("------------------------------------------------------")
+        moved_points.append(moved_point)
+    return moved_points
+
+def display_slice_outlines(display, int_faces, angle, centre_point, scale, mid_z,
+    screen_height, screen_width, rel_pos):
+    line_colour, circle_colour = (255, 50, 50), (50, 255, 50)
+    for i in int_faces:
+        cutp1 = i[1][0][2]
+        cutp2 = i[1][1][2]
+        # cutp1 = rotate_data(cutp1, angle, centre_point)
+        cutp1 = model_coords_convertor(cutp1, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
+        # cutp2 = rotate_data(cutp2, angle, centre_point)
+        cutp2 = model_coords_convertor(cutp2, scale, centre_point, (screen_width, screen_height), angle, rel_pos)
+
+        pygame.draw.circle(display, circle_colour, cutp1, 5, 2)
+        pygame.draw.circle(display, circle_colour, cutp2, 5, 2)
+        pygame.draw.line(display, line_colour, cutp1, cutp2)
+
+
+class SeperatedFaces:
+    def __init__(self, data_list):
+        self.objects = {}
+        self.faces = []
+        self.data_list = data_list
+
+    def add_face(self, face_no):
+        # Add a face to an object
+        if face_no not in self.faces and not self.check_no_repeated_faces(face_no):
+            self.faces.append(face_no)
+        else:
+            print("face no.: {} has already been added".format(face_no))
+
+    def create_object(self):
+        # Call once all faces that we wish to be seperate are selected
+        object_key = len(self.objects) + 1
+        self.objects[object_key] = self.faces
+        self.clear_faces()
+
+    def clear_faces(self):
+        self.faces = []
+
+    def check_no_repeated_faces(self, face_no):
+        # Check the face where trying to add to a new object hasn't already been added
+        for _obj_key, faces in self.objects.items():
+            if face_no in faces:
+                return True
+            else:
+                return False
+
+    def get_objects(self):
+        # Need to add check that total no of faces is equal to that of data_list
+        return self.objects
+
+
+def create_screen(data_list, screen_height, screen_width, debug):
+    # Calculate the centre point coordinate of the model
     centre_point = calc_centre(data_list[1])
-    data_list_2 = copy.deepcopy(data_list)
+    data_list_copy = copy.deepcopy(data_list)
 
+    # Load icon
+    logo_rel_path = 'logo/Bio-Logo-v1.jpg'
+    logo_path = os.path.join(os.getcwd(), logo_rel_path)
+    logo = pygame.image.load(logo_path)
+    pygame.display.set_icon(logo)
 
-    DISPLAYSURF = pygame.display.set_mode((Screen_width, Screen_height), 0, 32)
-    pygame.display.set_caption('BioDesic Pattern Fitter Version 2')
-    pygame.key.set_repeat(50, 30)
+    DISPLAYSURF = pygame.display.set_mode(
+        (screen_width, screen_height),
+        pygame.RESIZABLE|pygame.HWSURFACE|pygame.DOUBLEBUF,
+        32
+    )
 
-    angle = 0
-    delta_ang_pheta = 2
-    points = []
+    # Set name in title bar
+    pygame.display.set_caption('BioDesic Pattern Fitter')
+    background_colour = (50, 50, 50)
+    pygame.key.set_repeat(50, 10)
+
+    # Instantiate text box class
+    display_data = DisplayData(DISPLAYSURF)
+
+    # Consts for rotational view angles
+    view_angles = {
+        'front': (-90, 0, 0),
+        'back': (90, 180, 180),
+        'left': (-90, 90, 0),
+        'right': (-90, -90, 0),
+        'top': (0, 0, 0),
+        'bottom': (180, 0, 0)
+    }
+    angle = list(view_angles['front'])
+    delta_ang_amount = 2 # Number of degrees to rotate by every frame
+    # Dict for getting rotation coords by axis
+    delta_ang_all = {
+        'x': (delta_ang_amount, 0, 0),
+        'y': (0, delta_ang_amount, 0),
+        'z': (0, 0, delta_ang_amount)
+    }
+
+    def add_angles(angle, delta_ang, neg=False):
+        const = 1
+        if neg:
+            const = -1
+        angle = map(lambda a, b: a + const * b, angle, delta_ang)
+
+        return angle
+
     SHIFT = False
     CONTROL = False
 
-    coords = []
-    measurement_2 = 0.0
+    points = [] # Screen coords of click points [x, y]
+    coords = [] # Coordinates of click points in model space
+    measurement = 0
+    input_measurement = 0.0
     measurement_list = [0]
 
     quit_scr = False
     quitting = False
 
-    faces_vis = False
-    norm_vis = False
-    show_edges = False
-    show_unedited = False
-    align_to_plane = False
-    plane_aligned = False
+    show_back_faces = True
+    faces_vis = False   # Display face nos
+    norm_vis = False    # Display normals
+    show_edges = True  # Display edges
+    show_unedited = False   # Display unedited model edges
+    align_to_plane = False  # Re-align slice plane to local geometry
+    plane_aligned = False   # Slice plane is aligned to local geometry
     int_faces_1 = []
     test_data = {}
     cut_plane_2 = []
     connected_faces = face_connects(data_list)
+    avg_normals = None
 
-    height = float(Screen_height * .95)
-    width = float(Screen_width * .95)
+    seperate_objects_mode = False
+    seperated_faces = SeperatedFaces(data_list_copy)
 
-    scale_z = height / delta_z(data_list_2)[0]
-    scale_x = width / delta_x(data_list_2)[0]
+    initial_scale, mid_z = calculate_display_sizes(screen_height, screen_width, data_list_copy)
+    scale = initial_scale
+    # z = []
+    # for i in data_list_copy[1]:
+    #     z.append(i[2])
 
-    if scale_z < scale_x:
-        scale = scale_z
+    # print("Max z value = " + str(max(z)))
+    # print("Min z value = " + str(min(z)))
+    # print("Middle z value = " + str(mid_z))
 
-    else:
-        scale = scale_x
+    # Vars for handling mouse up & down events and moving objects on screen by dragging
+    mouse_dwn_start = None
+    max_mouse_dwn = 0.3
+    mouse_dwn_delta = 0
+    mouse_rel_pos = [0, 0]
 
-    min_z = delta_z(data_list_2)[1] + delta_z(data_list_2)[0] / 2
+    # Toggle boolean vars
+    flip_bool = {True: False, False: True}
+
+    cut_point_colour = (0, 100, 250)
 
     while True:
         try:
-            DISPLAYSURF.fill((0, 0, 0))
+            DISPLAYSURF.fill(background_colour)
 
-            scale, min_z, polygon_list = display_model(data_list_2, DISPLAYSURF, angle, centre_point, scale, min_z, faces_vis, norm_vis, show_edges)
+            draw_axes(DISPLAYSURF, angle)
+
+            # Draw geometry of model
+            scale, mid_z, _polygon_list, avg_normals = display_model(
+                data_list_copy,
+                DISPLAYSURF,
+                angle,
+                centre_point,
+                scale,
+                mid_z,
+                faces_vis,
+                norm_vis,
+                show_edges,
+                show_back_faces,
+                screen_height,
+                screen_width,
+                avg_normals,
+                mouse_rel_pos
+            )
 
             clicked = False
 
-            check_measurement = False
-
+            # Draw unedited model edges
             if show_unedited == True:
-                draw_edges(data_list, DISPLAYSURF, angle, centre_point, norm_vis, scale, min_z)
-
-            if quit_scr == True:
-                quit_screen()
-
-            measurement_2 = convert_list(measurement_list)
-            measurement_text2(measurement_2, [0, 20])
+                draw_edges(
+                    data_list,
+                    DISPLAYSURF,
+                    angle,
+                    centre_point,
+                    norm_vis,
+                    scale,
+                    mid_z,
+                    screen_height,
+                    screen_width,
+                    mouse_rel_pos
+                )
 
             if len(coords) > 0:
-                text1(coords[-1], [0, 60])
-                text1(coords[-2], [0, 40])
+                display_data.update_value('coordinates_1', coords[-1])
+                display_data.update_value('coordinates_2', coords[-2])
 
             for event in pygame.event.get():
-                # print event
+                if event.type == VIDEORESIZE:
+                    screen_height, screen_width = event.h, event.w
+                    # to reset the scale when resizing add scale var below
+                    _, mid_z = calculate_display_sizes(screen_height, screen_width, data_list_copy)
+                    DISPLAYSURF = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE | pygame.DOUBLEBUF, 32)
+
                 if event.type == QUIT:
                     quit_scr = True
 
@@ -1794,82 +546,100 @@ def create_screen(data_list):
                         quit_scr = True
 
                     elif event.key == K_y and quit_scr == True:
-                        quit_game(data_list_2, True)
+                        quit_game(data_list_copy, True)
 
                     elif event.key == K_n and quit_scr == True:
-                        quit_game(data_list_2, False)
+                        quit_game(data_list_copy, False)
 
-                    elif event.key == K_c and quit_scr == True and not CONTROL:
-                        quit_scr = False
+                    elif event.key == K_c:
+                        if quit_scr and not CONTROL:
+                            quit_scr = False
+                        elif CONTROL:
+                            quit_scr = True
+                        else:
+                            points = []
+                            coords = []
+                            cut_plane = []
+                            cut_plane_2 = []
+                            int_faces = []
+                            display_data.clear_values()
+                            measurement = 0
 
-                    elif event.key == K_c and CONTROL == True:
-                        quit_scr = True
-
+                    # Rotate view clockwise about z axis
                     elif event.key == K_LEFT:
-                        angle += delta_ang_pheta
+                        angle = add_angles(angle, delta_ang_all['z'])
 
+                    # Rotate view counter-clockwise about z axis
                     elif event.key == K_RIGHT:
-                        angle -= delta_ang_pheta
+                        angle = add_angles(angle, delta_ang_all['z'], True)
+
+                    # Rotate view clockwise about x axis
+                    elif event.key == K_UP:
+                        angle = add_angles(angle, delta_ang_all['x'], True)
+                    
+                    # Rotate view counter-clockwise about x axis
+                    elif event.key == K_DOWN:
+                        angle = add_angles(angle, delta_ang_all['x'])
 
                     elif event.key == K_f:
-                        angle = 0
+                        angle = list(view_angles['front'])
 
-                    elif event.key == K_b:
-                        angle = 180
+                    elif event.key == K_b and not CONTROL:
+                        angle = list(view_angles['back'])
+
+                    elif event.key == K_b and CONTROL:
+                        show_back_faces = flip_bool[show_back_faces]
 
                     elif event.key == K_r:
-                        angle = 90
-
+                        if CONTROL:
+                            mouse_rel_pos = [0, 0]
+                            scale = initial_scale
+                        else:
+                            angle = list(view_angles['right'])
+                        
                     elif event.key == K_l:
-                        angle = -90
+                        angle = list(view_angles['left'])
+
+                    elif event.key == K_t:
+                        angle = list(view_angles['top'])
+                    
+                    elif event.key == K_MINUS:
+                        scale *= 0.9
+
+                    elif event.key == K_EQUALS:
+                        scale *= 1.1
 
                     elif event.key == K_e:
                         if CONTROL == False:
-                            if show_edges == False:
-                                show_edges = True
-
-                            elif show_edges == True:
-                                show_edges = False
-
+                            show_edges = flip_bool[show_edges]
                         else:
-                            if show_unedited == False:
-                                show_unedited = True
+                            show_unedited = flip_bool[show_unedited]
 
-                            elif show_unedited == True:
-                                show_unedited = False
-
+                    elif event.key == K_s:
+                        # Need to add logic for seperating faces to different objects
+                        print("not currently implemented")
+                        if seperate_objects_mode is True:
+                            seperate_objects_mode = False
+                        else:
+                            seperate_objects_mode = True
 
                     elif event.key == K_v:
-                        if faces_vis == False:
-                            faces_vis = True
-
-                        elif faces_vis == True:
-                            faces_vis = False
+                        faces_vis = flip_bool[faces_vis]
 
                     elif event.key == K_n:
-                        if norm_vis == False:
-                            norm_vis = True
-
-                        elif norm_vis == True:
-                            norm_vis = False
+                        norm_vis = flip_bool[norm_vis]
 
                     elif event.key == K_DELETE:
-                        data_list_2 = copy.deepcopy(data_list)
-
-                    elif event.key == K_c:
-                        points = []
-                        coords = []
-                        cut_plane = []
-                        cut_plane_2 = []
-                        int_faces = []
+                        data_list_copy = copy.deepcopy(data_list)
 
                     elif event.key == K_a:
                         if len(cut_plane) > 0 and align_to_plane == False:
+                            # We can only align a plane if we have one already
                             align_to_plane = True
-
                         else:
                             align_to_plane = False
                             clicked = True
+                            cut_plane_2 = []
 
                     elif event.key == K_LSHIFT or event.key == K_RSHIFT:
                         SHIFT = True
@@ -1886,14 +656,14 @@ def create_screen(data_list):
 
                         if align_to_plane == True & len(cut_plane_2) > 0:
                             plane = cut_plane_2
-
                         else:
                             plane = cut_plane
 
-                        data_list_2 = move_vertices(int_faces_1, plane, measurement_2, data_list_2, connected_faces)
-                        check_measurement = True
+                        # Move vertices to fit measurement entered
+                        data_list_copy, avg_normals = offset_vertices(int_faces_1, plane, input_measurement, data_list_copy, connected_faces)
+                        # check_measurement = True
 
-                    elif event.key == K_BACKSPACE and  len(measurement_list) > 1:
+                    elif event.key == K_BACKSPACE and len(measurement_list) > 1:
                         del(measurement_list[-1])
 
                 elif event.type == KEYUP:
@@ -1903,14 +673,32 @@ def create_screen(data_list):
                     elif event.key == K_LCTRL or event.key == K_RCTRL:
                         CONTROL = False
 
+                elif event.type == MOUSEMOTION:
+                    get_rel = pygame.mouse.get_rel()
+                    # If the left mouse is down and the mouse moves get the relative motion for panning the
+                    # model
+                    if mouse_dwn_start != None:
+                        mouse_rel_pos = map(lambda x, y: x + y, get_rel, mouse_rel_pos)
+                        
+
                 elif event.type == MOUSEBUTTONDOWN:
+                    # Start the timer to check how long the left mouse button is pressed
                     if pygame.mouse.get_pressed()[0]:
+                        mouse_dwn_start = time.time()
+
+                elif event.type == MOUSEBUTTONUP:
+                    # Calculate how long the left button was pressed
+                    if mouse_dwn_start != None:
+                        mouse_dwn_delta = time.time() - mouse_dwn_start
+                    # If time pressed less than max time assume it's a click
+                    if mouse_dwn_start == None or mouse_dwn_delta < max_mouse_dwn:
+
                         point = list(pygame.mouse.get_pos())
                         clicked = True
 
                         if SHIFT == True and len(points) > 0:
                             last_point = points[-1]
-                            if abs(last_point[0][0] - point[0]) > abs(last_point[0][1] - point[1]) :
+                            if abs(last_point[0][0] - point[0]) > abs(last_point[0][1] - point[1]):
                                 point[1] = last_point[0][1]
 
                             else:
@@ -1931,28 +719,54 @@ def create_screen(data_list):
 
                             else:
                                 points.append([point])
+                    mouse_dwn_start = None
+                    mouse_dwn_delta = 0
 
 
             for i in range(0, len(points)):
+                # Draw points that have been clicked on screen
                 for n in range(0, len(points[i])):
-                    pygame.draw.circle(DISPLAYSURF, (255, 50, 50), points[i][n], 5, 2)
+                    pygame.draw.circle(DISPLAYSURF, cut_point_colour, points[i][n], 5, 2)
 
 
             if len(points) > 0:
+                # print(points)
+                # print(mouse_rel_pos)
+                # print(coords)
+                # points = move_screen_points(points, mouse_rel_pos)
+                # updated_points = []
+                # for coord in coords:
+                #     model_coords_convertor(cutp2, scale, centre_point, (screen_width, screen_height), rel_pos)
+                #     screen_coord = screen_point_convertor(
+                #         coord, scale, mid_z, screen_height, screen_width, rel_pos=(0, 0)
+                #     )
+                #     updated_points.append(screen_coord)
+
+                # sys.exit()
+                # points = updated_points
+                
                 if len(points[-1]) % 2 == 0:
                     for i in range(0, len(points)):
-                        pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i][0], points[i][1])
-
+                        pygame.draw.line(DISPLAYSURF, cut_point_colour, points[i][0], points[i][1])
                         if clicked == True:
-                            coords.append(data_point_screen_convertor(points[-1][0], scale, min_z))
-                            coords.append(data_point_screen_convertor(points[-1][1], scale, min_z))
+                            for i in range(0, len(points[-1])):
+                                coords.append(
+                                    data_point_screen_convertor(
+                                        points[-1][i],
+                                        scale,
+                                        mid_z,
+                                        centre_point,
+                                        angle,
+                                        screen_height,
+                                        screen_width,
+                                        mouse_rel_pos
+                                    )
+                                )
 
-                    if len(cut_plane_2) == 0 or clicked == True or align_to_plane == False:
-                        # if plane_aligned == True:
-                        #     print coords
-                            # del(coords[-2:])
+                    if (len(cut_plane_2) == 0 or clicked == True) and align_to_plane == False:
                         try:
-                            int_faces_1, cut_plane = get_intersect_face_plane(coords[-2], coords[-1], data_list_2, [])
+                            # Calculate points of intersection between the cut plane and model
+                            int_faces_1, cut_plane = get_intersect_face_plane(coords[-2], coords[-1], data_list_copy, [])
 
                         except IndexError as error:
                             print(error)
@@ -1961,76 +775,87 @@ def create_screen(data_list):
                         plane_aligned == False
 
                     if align_to_plane == True and len(cut_plane_2) == 0:
-                        cut_plane_2, coord1, coord2 = align_plane(int_faces_1, cut_plane, data_list_2, coords[-2], coords[-1])
-
-                        p1 = screen_point_convertor(coord1, scale, min_z)
-                        p2 = screen_point_convertor(coord2, scale, min_z)
+                        cut_plane_2, coord1, coord2 = align_plane(int_faces_1, cut_plane, data_list_copy, coords[-2], coords[-1])
+                        # coords.extend([coord1, coord2])
+                        print("align_to_plane: True, cut_plane: None")
+                        print(cut_plane_2)
+                        
+                        p1 = model_coords_convertor(coord1, scale, centre_point, (screen_width, screen_height), angle, mouse_rel_pos)
+                        p2 = model_coords_convertor(coord2, scale, centre_point, (screen_width, screen_height), angle, mouse_rel_pos)
                         points.append([p1, p2])
-                        int_faces_1 = get_intersect_face_plane(coord1, coord2, data_list_2, cut_plane_2)[0]
+                        int_faces_1 = get_intersect_face_plane(coord1, coord2, data_list_copy, cut_plane_2)[0]
+                        print(len(int_faces_1))
+
                         plane_aligned = True
 
                     elif align_to_plane == True and len(cut_plane_2) > 0:
-                        int_faces_1 = get_intersect_face_plane(coords[-2], coords[-1], data_list_2, cut_plane_2)[0]
+                        print("align_to_plane: True, cut_plane: True")
+                        print(cut_plane_2)
+                        int_faces_1 = get_intersect_face_plane(coords[-2], coords[-1], data_list_copy, cut_plane_2)[0]
+
                         plane_aligned = True
+                        print(len(int_faces_1))
 
                     measurement = calc_measurement(int_faces_1)
-                    measurement_text(measurement)
 
                 else:
                     for i in range(0, len(points) - 1):
-                        pygame.draw.line(DISPLAYSURF, (255, 50, 50), points[i][0], points[i][1])
-
-            if check_measurement == True:
-                if len(cut_plane_2) == 0:
-                    int_faces_1, cut_plane = get_intersect_face_plane(coords[-2], coords[-1], data_list_2, [])
-
-                if align_to_plane == True:
-                    cut_plane_2, coord1, coord2 = align_plane(int_faces_1, cut_plane, data_list_2, coords[-2], coords[-1])
-                    p1 = screen_point_convertor(coord1, scale, min_z)
-                    p2 = screen_point_convertor(coord2, scale, min_z)
-                    points.append([p1, p2])
-                    int_faces_1 = get_intersect_face_plane(coord1, coord2, data_list_2, cut_plane_2)[0]
+                        pygame.draw.line(DISPLAYSURF, cut_point_colour, points[i][0], points[i][1])
 
                 measurement = calc_measurement(int_faces_1)
-                measurement_text(measurement)
 
-            if len(test_data) > 0:
-                text3('offset = ' + str(test_data['delta_h']),[0, 80], [255, 255, 255])
-                text3('total angle = ' + str(test_data['total angle']), [0, 100], [255, 255, 255])
+            # if len(test_data) > 0:
+            #     display_data.text3('offset: ' + str(test_data['delta_h']),[0, 80], [255, 255, 255])
+            #     display_data.text3('total angle: ' + str(test_data['total angle']), [0, 100], [255, 255, 255])
 
+            # If there is a cut through display intersection lines
             if len(int_faces_1) > 0 and len(points) > 0:
-                for i in int_faces_1:
-                    cutp1 = i[1][0][2]
-                    cutp2 = i[1][1][2]
-                    cutp1 = rotate_data(cutp1, angle)
-                    cutp1 = screen_point_convertor(cutp1, scale, min_z)
-                    cutp2 = rotate_data(cutp2, angle)
-                    cutp2 = screen_point_convertor(cutp2, scale, min_z)
+                display_slice_outlines(
+                    DISPLAYSURF, int_faces_1, angle, centre_point, scale, mid_z,
+                    screen_height, screen_width, mouse_rel_pos
+                )
 
-                    pygame.draw.circle(DISPLAYSURF, (50, 255, 50), cutp1, 5, 2)
-                    pygame.draw.circle(DISPLAYSURF, (50, 255, 50), cutp2, 5, 2)
+            input_measurement = convert_ui_integer_input(measurement_list)
+            display_data.update_value('measurement', measurement)
+            display_data.update_value('new_measurement', input_measurement)
+            display_data.update_angle(angle)
+            display_data.show_quit(quit_scr)
+            display_data.display()
 
-                    pygame.draw.line(DISPLAYSURF, (255, 50, 50), cutp1, cutp2)
-
-            pygame.display.update()
+            pygame.display.flip()
             FPSClock.tick(FPS)
         
         except Exception as error:
-            print error
-            print "Oh no!"
+            print(error)
+            print("Oh no!")
+            print(traceback.format_exc())
+            if debug == True:
+                sys.exit()
 
 
 
-def main():
+def main(debug=False):
     formatter = InputFormatter(file_name)
     data_list = formatter.data
-    with open("data.txt", "w+") as file:
-        json.dump(data_list, file, indent=4)
-        file.close()
-    with open("eqns.txt", "w+") as file:
-        json.dump(equations(data_list), file, indent=4)
-        file.close()
-    create_screen(data_list)
+
+    if debug:
+        # Output data for debugging
+        with open("data.txt", "w+") as file:
+            json.dump(data_list, file, indent=4)
+            file.close()
+        with open("eqns.txt", "w+") as file:
+            json.dump(equations(data_list), file, indent=4)
+            file.close()
+
+    create_screen(data_list, Screen_height, Screen_width, debug)
 
 if __name__ == '__main__':
-    main()
+    args = sys.argv
+    if len(args) > 0:
+        debug = args[1].split("=")[1]
+    else:
+        debug = False
+    if debug == "True":
+        debug = True
+
+    main(debug)

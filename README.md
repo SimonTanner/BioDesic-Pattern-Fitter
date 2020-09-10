@@ -1,3 +1,5 @@
+![Image of logo](https://github.com/SimonTanner/BioDesic-Pattern-Fitter/blob/Refactor_19_04/logo/Bio-Logo-v1.jpg)
+
 # BioDesic-Pattern-Fitter
 
 ### Introduction
@@ -21,38 +23,44 @@ You also need Pygame. To install it run the command:
 
 ### To run the program:
 
-From the command shell (Bash Unix or Mac) enter **python Biodesic\ Fit_Version_1** or type **python** hit enter and then type **exec(open("Biodesic Fit_Version_1.py").read())** from inside the python shell
+From the command shell (Bash Unix or Mac) enter **python biodesic_fit_version_1**
 
 For Windows you can open the code using the IDLE or double click the .py file and it will run automatically.
 
-Once the program's running you can click two points either side of the part of the model you want to cut through and it will display the measurement. You can then type in the new measurement and hit enter repeatedly until it acheives thee desired result.
+Once the program's running you can click two points either side of the part of the model you want to cut through and it will display the measurement. You can then type in the new measurement and hit enter repeatedly until it achieves thee desired result.
 
 ![Image of GUI](https://github.com/SimonTanner/BioDesic-Pattern-Fitter/blob/master/images/BioDesic-Pattern-Fitter.jpg)
 
 ### Other commands are as follows:
 
-E - Shows or hides polygon edges
+**E** - Shows or hides polygon edges
 
-CTRL + E - Displays the edges of the pattern before you made any changes allowing you to compare the two
+**CTRL + E** - Displays the edges of the pattern before you made any changes allowing you to compare the two
 
-Left & Right Arrow keys rotate the model
+**Left** & **Right** arrow keys rotate the model left & right
 
-F - Front view
+**Up** & **Down** arrow keys rotate the model up & down
 
-L - Left view
+**+** & **-** keys zoom in and out
 
-R - Right view
+**F** - Front view
 
-B - Back view
+**L** - Left view
 
-C - Clears the cut points
+**R** - Right view
 
-A - Aligns the cutting plane to the average perpendicular plane to the local geometry
+**B** - Back view
 
-SHIFT - Whilst clicking a second point means the line will be drawn along the x or y axis.
+**CTRL + R** resets the zoom and re-centres the model to the view
 
-V - Displays the number of the face
+**C** - Clears the cut points
 
-N - Toggles the display of the average normal at each vertex
+**A** - Aligns the cutting plane to the average perpendicular plane to the local geometry
 
-ESC - Brings up the quit menu
+**SHIFT** - Whilst clicking a second point means the line will be drawn along the x or y axis.
+
+**V** - Displays the number of the face
+
+**N** - Toggles the display of the average normal at each vertex
+
+**ESC** or **CTRL + C** - Brings up the quit menu
